@@ -318,6 +318,9 @@ const App: React.FC = () => {
         settings={settings}
         onSave={setAppSettings}
         onRegeneratePeerId={regenerateId}
+        onExportJSON={handleExportJSON}
+        onImportClick={handleImportClick}
+        onDeleteAll={() => setConfirmDialog({ isOpen: true, type: 'all' })}
       />
       <CollaborationDialog isOpen={isCollabDialogOpen} onClose={() => setIsCollabDialogOpen(false)} myPeerId={myPeerId} isConnected={isConnected} connectionCount={connectionCount} onConnect={connectToPeer} />
       <ConfirmDialog isOpen={confirmDialog.isOpen} title={dialogContent.title} message={dialogContent.message} confirmLabel={dialogContent.confirmLabel} confirmVariant={dialogContent.confirmVariant} showCancel={dialogContent.showCancel} onConfirm={executeConfirmAction} onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} />

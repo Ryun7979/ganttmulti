@@ -3,7 +3,7 @@ import { AppSettings } from '../types';
 import { Modal } from './Modal';
 import { Settings } from 'lucide-react';
 import { tintColor, shadeColor, parseDate, isWeekend, DEFAULT_SETTINGS } from '../utils';
-import { GeneralSettingsTab, PaletteSettingsTab, CalendarSettingsTab, NetworkSettingsTab, ManualTab } from './SettingsDialogTabs';
+import { GeneralSettingsTab, PaletteSettingsTab, CalendarSettingsTab, NetworkSettingsTab, ManualTab, FileSettingsTab } from './SettingsDialogTabs';
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -11,6 +11,9 @@ interface SettingsDialogProps {
   settings: AppSettings;
   onSave: (newSettings: AppSettings) => void;
   onRegeneratePeerId: () => void;
+  onExportJSON: () => void;
+  onImportClick: () => void;
+  onDeleteAll: () => void;
 }
 
 export const SettingsDialog: React.FC<SettingsDialogProps> = ({
@@ -18,9 +21,12 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   onClose,
   settings,
   onSave,
-  onRegeneratePeerId
+  onRegeneratePeerId,
+  onExportJSON,
+  onImportClick,
+  onDeleteAll
 }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'palette' | 'calendar' | 'network' | 'manual'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'palette' | 'calendar' | 'network' | 'manual' | 'file'>('general');
   const [localSettings, setLocalSettings] = useState<AppSettings>(() => structuredClone(settings));
   const [newHoliday, setNewHoliday] = useState('');
   const [holidayError, setHolidayError] = useState<string | null>(null);
@@ -55,7 +61,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   };
 
   const handleEventColorChange = (field: keyof AppSettings['eventColors'], value: string) => {
-    const newColors = { ...(localSettings.eventColors || {}), [field]: value } as AppSettings['eventColors'];
+    const currentColors = localSettings.eventColors || { ...DEFAULT_SETTINGS.eventColors };
+    const newColors = { ...currentColors, [field]: value };
     if (field === 'headerBg') {
       newColors.dateText = shadeColor(value, 0.6);
       newColors.weekdayText = shadeColor(value, 0.4);
@@ -70,6 +77,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     if (isWeekend(parseDate(newHoliday))) return setHolidayError('指定日は「土日」のため、設定不要です。');
     setLocalSettings({ ...localSettings, customHolidays: [...localSettings.customHolidays, newHoliday].sort() });
     setNewHoliday('');
+    setHolidayError(null);
   };
 
   const handleAddEvent = () => {
@@ -77,6 +85,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     if (newEvent && !currentEvents.includes(newEvent)) {
       setLocalSettings({ ...localSettings, customEvents: [...currentEvents, newEvent].sort() });
       setNewEvent('');
+      setEventError(null);
     } else if (currentEvents.includes(newEvent)) {
       setEventError('既に登録されています。');
     }
@@ -92,6 +101,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     { id: 'general', label: '一般' },
     { id: 'palette', label: 'カラーパレット' },
     { id: 'calendar', label: 'カレンダー設定' },
+    { id: 'file', label: 'ファイル設定' },
     { id: 'network', label: 'ネットワーク' },
     { id: 'manual', label: 'マニュアル' },
   ];
@@ -134,6 +144,13 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
           )}
           {activeTab === 'network' && <NetworkSettingsTab onRegenerate={handleRegenerate} regenerationSuccess={regenerationSuccess} />}
           {activeTab === 'manual' && <ManualTab />}
+          {activeTab === 'file' && (
+            <FileSettingsTab
+              onExportJSON={onExportJSON}
+              onImportClick={onImportClick}
+              onDeleteAll={() => { onClose(); onDeleteAll(); }}
+            />
+          )}
         </div>
         <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">キャンセル</button>

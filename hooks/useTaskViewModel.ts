@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Task, TaskOrGroup } from '../types';
 
 interface UseTaskViewModelProps {
@@ -9,7 +9,7 @@ interface UseTaskViewModelProps {
 export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => {
   const [groupBy, setGroupBy] = useState<'default' | 'assignee'>('default');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  
+
   // Drag Reordering State
   const [draggedTaskIndex, setDraggedTaskIndex] = useState<number | null>(null);
   const [draggingTasks, setDraggingTasks] = useState<Task[] | null>(null);
@@ -30,7 +30,7 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
   // Derived Data
   const displayItems: TaskOrGroup[] = useMemo(() => {
     const source = draggingTasks || tasks;
-    
+
     if (groupBy === 'default') {
       return source;
     }
@@ -53,7 +53,7 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
     sortedKeys.forEach(key => {
       const groupId = `group-header-${key}`;
       const isCollapsed = collapsedGroups.has(groupId);
-      
+
       const groupTasks = grouped.get(key)!;
       const totalTasks = groupTasks.length;
       const incompleteTasks = groupTasks.filter(t => t.progress < 100).length;
@@ -65,7 +65,7 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
         title: `${key} (${incompleteTasks}/${totalTasks})`,
         isCollapsed
       });
-      
+
       // Add Tasks if not collapsed
       if (!isCollapsed) {
         result.push(...grouped.get(key)!);
@@ -86,13 +86,13 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    
+
     if (groupBy !== 'default' || draggedTaskIndex === null || draggedTaskIndex === index) return;
-    
+
     const newTasks = [...(draggingTasks || tasks)];
     const [item] = newTasks.splice(draggedTaskIndex, 1);
     newTasks.splice(index, 0, item);
-    
+
     setDraggingTasks(newTasks);
     setDraggedTaskIndex(index);
   };

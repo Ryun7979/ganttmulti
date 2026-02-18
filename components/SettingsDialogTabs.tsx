@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppSettings, ColorSet } from '../types';
 import { Button } from './Button';
-import { RefreshCw, Trash2, Plus, AlertCircle, RotateCcw, BookOpen, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, Trash2, Plus, AlertCircle, RotateCcw, BookOpen, CheckCircle2, Download, Upload } from 'lucide-react';
 
 // --- Sub-components for Tabs ---
 
@@ -311,6 +311,40 @@ export const ManualTab: React.FC = () => (
                     <li><span className="font-semibold">休日・イベント:</span> 独自の休日やイベント日を追加し、色をカスタマイズできます。</li>
                 </ul>
             </section>
+        </div>
+    </div>
+);
+
+export const FileSettingsTab: React.FC<{
+    onExportJSON: () => void;
+    onImportClick: () => void;
+    onDeleteAll: () => void;
+}> = ({ onExportJSON, onImportClick, onDeleteAll }) => (
+    <div className="space-y-6">
+        <div className="bg-white border rounded-lg p-4 space-y-4 shadow-sm">
+            <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                <Download size={18} className="text-blue-500" />
+                データの保存と復元
+            </h3>
+            <p className="text-xs text-gray-500">
+                現在のタスクデータと設定（祝日、カラー設定など）をJSON形式でエクスポートしたり、以前保存したファイルをインポートしたりできます。
+            </p>
+            <div className="flex gap-3">
+                <Button variant="secondary" onClick={onExportJSON} icon={<Upload size={16} />}>JSONへ保存</Button>
+                <Button variant="secondary" onClick={onImportClick} icon={<Download size={16} />}>JSONから読込</Button>
+            </div>
+        </div>
+
+        <div className="bg-red-50 border border-red-100 rounded-lg p-4 space-y-4">
+            <h3 className="text-sm font-bold text-red-800 flex items-center gap-2">
+                <Trash2 size={18} />
+                データの初期化
+            </h3>
+            <p className="text-xs text-red-700">
+                全てのタスクデータを削除し、アプリケーション設定（名前、カラーパレット、休日・イベント設定）を全て初期状態に戻します。
+                <br /><strong>※この操作は取り消せません。</strong>
+            </p>
+            <Button variant="danger" onClick={onDeleteAll} icon={<Trash2 size={16} />}>全てのデータを削除</Button>
         </div>
     </div>
 );
