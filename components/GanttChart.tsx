@@ -27,14 +27,14 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
   onScroll,
 }, ref) => {
   const chartRef = useRef<HTMLDivElement>(null);
-  
+
   useImperativeHandle(ref, () => chartRef.current!);
 
   const tasks = useMemo(() => items.filter((i): i is Task => !('type' in i && i.type === 'group')), [items]);
 
   const uniqueAssignees = useMemo(() => {
     const s = new Set<string>();
-    tasks.forEach(t => s.add(t.assignee || '')); 
+    tasks.forEach(t => s.add(t.assignee || ''));
     return Array.from(s).sort();
   }, [tasks]);
 
@@ -70,26 +70,32 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
     });
   };
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!dragState.isDragging || !dragState.taskId) return;
+  const dragStateRef = useRef(dragState);
+  useEffect(() => {
+    dragStateRef.current = dragState;
+  }, [dragState]);
 
-    if (dragState.mode === 'change-progress') {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    const currentDragState = dragStateRef.current;
+    if (!currentDragState.isDragging || !currentDragState.taskId) return;
+
+    if (currentDragState.mode === 'change-progress') {
       if (!chartRef.current) return;
-      const task = tasks.find(t => t.id === dragState.taskId);
+      const task = tasks.find(t => t.id === currentDragState.taskId);
       if (!task) return;
 
       const chartRect = chartRef.current.getBoundingClientRect();
       const scrollLeft = chartRef.current.scrollLeft;
-      
-      const taskStart = dragState.originalStart; 
+
+      const taskStart = currentDragState.originalStart;
       const startOffsetDays = diffDays(taskStart, timelineStart);
       const taskLeftPx = startOffsetDays * pixelsPerDay;
-      const taskDuration = diffDays(dragState.originalEnd, taskStart) + 1;
+      const taskDuration = diffDays(currentDragState.originalEnd, taskStart) + 1;
       const taskWidthPx = taskDuration * pixelsPerDay;
-      
+
       const mouseXInContent = e.clientX - chartRect.left + scrollLeft;
       const relativeX = mouseXInContent - taskLeftPx;
-      
+
       let newProgress = Math.round((relativeX / taskWidthPx) * 100);
       newProgress = Math.max(0, Math.min(100, newProgress));
 
@@ -100,20 +106,20 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
       return;
     }
 
-    const deltaX = e.clientX - dragState.initialX;
+    const deltaX = e.clientX - currentDragState.initialX;
     const deltaDays = Math.round(deltaX / pixelsPerDay);
 
-    let newStart = new Date(dragState.originalStart);
-    let newEnd = new Date(dragState.originalEnd);
+    let newStart = new Date(currentDragState.originalStart);
+    let newEnd = new Date(currentDragState.originalEnd);
 
-    if (dragState.mode === 'move') {
-      newStart = addDays(dragState.originalStart, deltaDays);
-      newEnd = addDays(dragState.originalEnd, deltaDays);
-    } else if (dragState.mode === 'resize-left') {
-      newStart = addDays(dragState.originalStart, deltaDays);
+    if (currentDragState.mode === 'move') {
+      newStart = addDays(currentDragState.originalStart, deltaDays);
+      newEnd = addDays(currentDragState.originalEnd, deltaDays);
+    } else if (currentDragState.mode === 'resize-left') {
+      newStart = addDays(currentDragState.originalStart, deltaDays);
       if (newStart > newEnd) newStart = newEnd;
-    } else if (dragState.mode === 'resize-right') {
-      newEnd = addDays(dragState.originalEnd, deltaDays);
+    } else if (currentDragState.mode === 'resize-right') {
+      newEnd = addDays(currentDragState.originalEnd, deltaDays);
       if (newEnd < newStart) newEnd = newStart;
     }
 
@@ -123,27 +129,28 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
       currentEnd: newEnd
     }));
 
-  }, [dragState.isDragging, dragState.taskId, dragState.mode, dragState.initialX, dragState.originalStart, dragState.originalEnd, pixelsPerDay, tasks, timelineStart]);
+  }, [pixelsPerDay, tasks, timelineStart]);
 
   const handleMouseUp = useCallback(() => {
-    if (dragState.isDragging && dragState.taskId) {
-      const task = tasks.find(t => t.id === dragState.taskId);
+    const currentDragState = dragStateRef.current;
+    if (currentDragState.isDragging && currentDragState.taskId) {
+      const task = tasks.find(t => t.id === currentDragState.taskId);
       if (task) {
         let hasChanges = false;
         const updates: Partial<Task> = {};
 
-        if (dragState.currentStart && dragState.currentEnd) {
-           const s = formatDate(dragState.currentStart);
-           const e = formatDate(dragState.currentEnd);
-           if (s !== task.startDate || e !== task.endDate) {
-             updates.startDate = s;
-             updates.endDate = e;
-             hasChanges = true;
-           }
+        if (currentDragState.currentStart && currentDragState.currentEnd) {
+          const s = formatDate(currentDragState.currentStart);
+          const e = formatDate(currentDragState.currentEnd);
+          if (s !== task.startDate || e !== task.endDate) {
+            updates.startDate = s;
+            updates.endDate = e;
+            hasChanges = true;
+          }
         }
 
-        if (dragState.currentProgress !== undefined && dragState.currentProgress !== task.progress) {
-          updates.progress = dragState.currentProgress;
+        if (currentDragState.currentProgress !== undefined && currentDragState.currentProgress !== task.progress) {
+          updates.progress = currentDragState.currentProgress;
           hasChanges = true;
         }
 
@@ -152,17 +159,17 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
         }
       }
 
-      setDragState(prev => ({ 
-        ...prev, 
-        isDragging: false, 
-        taskId: null, 
+      setDragState(prev => ({
+        ...prev,
+        isDragging: false,
+        taskId: null,
         mode: null,
         currentStart: undefined,
         currentEnd: undefined,
         currentProgress: undefined
       }));
     }
-  }, [dragState, tasks, onTaskUpdate]);
+  }, [tasks, onTaskUpdate]);
 
   useEffect(() => {
     if (dragState.isDragging) {
@@ -184,41 +191,41 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
   const checkEvent = (date: Date) => isEvent(date, settings.customEvents);
 
   return (
-    <div 
-      className="relative flex-1 overflow-auto hide-scrollbar select-none" 
+    <div
+      className="relative flex-1 overflow-auto hide-scrollbar select-none"
       ref={chartRef}
       onScroll={onScroll}
     >
       {/* Header Dates */}
       <div className="flex border-b border-gray-200 sticky top-0 bg-gray-50 z-20 h-10 min-w-max">
         {ticks.map((date, i) => {
-           const isHol = checkHoliday(date);
-           const isEvt = checkEvent(date);
-           const isWe = isWeekend(date);
-           const isSpecial = isHol || (viewMode === 'Day' && isWe);
-           
-           // Determine styles based on priority: Event > Holiday > Default
-           let bg = undefined;
-           let dateTextColor = '#6b7280';
-           let weekdayTextColor = '#9ca3af';
+          const isHol = checkHoliday(date);
+          const isEvt = checkEvent(date);
+          const isWe = isWeekend(date);
+          const isSpecial = isHol || (viewMode === 'Day' && isWe);
 
-           if (isEvt) {
-             // Fallback for missing eventColors (backward compat)
-             const colors = settings.eventColors || { headerBg: '#fef9c3', dateText: '#ca8a04', weekdayText: '#eab308' };
-             bg = colors.headerBg;
-             dateTextColor = colors.dateText;
-             weekdayTextColor = colors.weekdayText;
-           } else if (isSpecial) {
-             bg = settings.holidayColors.headerBg;
-             dateTextColor = settings.holidayColors.dateText;
-             weekdayTextColor = settings.holidayColors.weekdayText;
-           }
-           
-           return (
+          // Determine styles based on priority: Event > Holiday > Default
+          let bg = undefined;
+          let dateTextColor = '#6b7280';
+          let weekdayTextColor = '#9ca3af';
+
+          if (isEvt) {
+            // Fallback for missing eventColors (backward compat)
+            const colors = settings.eventColors || { headerBg: '#fef9c3', dateText: '#ca8a04', weekdayText: '#eab308' };
+            bg = colors.headerBg;
+            dateTextColor = colors.dateText;
+            weekdayTextColor = colors.weekdayText;
+          } else if (isSpecial) {
+            bg = settings.holidayColors.headerBg;
+            dateTextColor = settings.holidayColors.dateText;
+            weekdayTextColor = settings.holidayColors.weekdayText;
+          }
+
+          return (
             <div
               key={i}
               className={`flex-shrink-0 border-r border-gray-200 flex flex-col items-center justify-center text-xs font-medium uppercase truncate px-1`}
-              style={{ 
+              style={{
                 width: `${getTickWidth(i)}px`,
                 backgroundColor: bg,
                 color: dateTextColor
@@ -228,7 +235,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
                 <>
                   <span style={{ color: dateTextColor }}>{date.getDate()}</span>
                   <span style={{ fontSize: '10px', color: weekdayTextColor }}>
-                      {date.toLocaleDateString('ja-JP', { weekday: 'narrow' })}
+                    {date.toLocaleDateString('ja-JP', { weekday: 'narrow' })}
                   </span>
                 </>
               )}
@@ -241,7 +248,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
                 <span>{date.getFullYear()}年 {date.getMonth() + 1}月</span>
               )}
             </div>
-           );
+          );
         })}
       </div>
 
@@ -250,41 +257,41 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
         {/* Background Grid Lines */}
         <div className="absolute inset-0 flex pointer-events-none z-0">
           {ticks.map((date, i) => {
-             const isHol = checkHoliday(date);
-             const isEvt = checkEvent(date);
-             const isWe = isWeekend(date);
-             const isSpecial = isHol || (viewMode === 'Day' && isWe);
-             
-             let bg = undefined;
-             if (isEvt) {
-               bg = settings.eventColors?.gridBg || '#fefce8';
-             } else if (isSpecial) {
-               bg = settings.holidayColors.gridBg;
-             }
+            const isHol = checkHoliday(date);
+            const isEvt = checkEvent(date);
+            const isWe = isWeekend(date);
+            const isSpecial = isHol || (viewMode === 'Day' && isWe);
 
-             return (
+            let bg = undefined;
+            if (isEvt) {
+              bg = settings.eventColors?.gridBg || '#fefce8';
+            } else if (isSpecial) {
+              bg = settings.holidayColors.gridBg;
+            }
+
+            return (
               <div
                 key={i}
                 className="flex-shrink-0 border-r border-gray-100 h-full"
-                style={{ 
+                style={{
                   width: `${getTickWidth(i)}px`,
                   backgroundColor: bg
                 }}
               />
-             );
+            );
           })}
         </div>
 
         {/* Timeline Drop Highlight */}
         {dragState.isDragging && dragState.currentStart && dragState.currentEnd && dragState.mode !== 'change-progress' && (
           <div className="absolute inset-0 z-0 pointer-events-none">
-             <div
-                className="absolute top-0 bottom-0 bg-blue-400/10 border-l border-r border-blue-400/50"
-                style={{
-                   left: `${diffDays(dragState.currentStart, timelineStart) * pixelsPerDay}px`,
-                   width: `${(diffDays(dragState.currentEnd, dragState.currentStart) + 1) * pixelsPerDay}px`
-                }}
-             />
+            <div
+              className="absolute top-0 bottom-0 bg-blue-400/10 border-l border-r border-blue-400/50"
+              style={{
+                left: `${diffDays(dragState.currentStart, timelineStart) * pixelsPerDay}px`,
+                width: `${(diffDays(dragState.currentEnd, dragState.currentStart) + 1) * pixelsPerDay}px`
+              }}
+            />
           </div>
         )}
 
@@ -293,8 +300,8 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
           {items.map((item) => {
             if ('type' in item && item.type === 'group') {
               return (
-                <div 
-                  key={item.id} 
+                <div
+                  key={item.id}
                   className="h-8 bg-gray-50 border-b border-gray-200 w-full relative flex items-center hover:bg-gray-100/50 transition-colors cursor-pointer"
                   onClick={() => onToggleGroup && onToggleGroup(item.id)}
                 >
@@ -307,13 +314,13 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
 
             const task = item as Task;
             const isDraggingThis = dragState.isDragging && dragState.taskId === task.id;
-            
+
             const displayStart = (isDraggingThis && dragState.currentStart) ? dragState.currentStart : parseDate(task.startDate);
             const displayEnd = (isDraggingThis && dragState.currentEnd) ? dragState.currentEnd : parseDate(task.endDate);
             const displayProgress = (isDraggingThis && dragState.currentProgress !== undefined) ? dragState.currentProgress : task.progress;
 
             const isCompleted = displayProgress === 100;
-            
+
             const assigneeIndex = uniqueAssignees.indexOf(task.assignee || '');
             const assigneeColor = getPaletteColor(assigneeIndex, settings.assigneePalette);
 
@@ -325,8 +332,8 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
             };
 
             return (
-              <div 
-                key={task.id} 
+              <div
+                key={task.id}
                 className={`h-12 border-b border-gray-100 relative group transition-colors 
                   ${isCompleted && !isDraggingThis ? 'bg-gray-100' : 'hover:bg-white/50'}
                 `}
@@ -357,14 +364,14 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
                     onEditTask(task);
                   }}
                 >
-                  <div 
-                    className={`h-full rounded-l-md transition-colors duration-300`} 
-                    style={{ 
+                  <div
+                    className={`h-full rounded-l-md transition-colors duration-300`}
+                    style={{
                       width: `${displayProgress}%`,
                       backgroundColor: isCompleted ? '#6b7280' : assigneeColor.bar
-                    }} 
+                    }}
                   />
-                  
+
                   <div
                     className={`absolute top-0 bottom-0 w-6 -ml-3 cursor-ew-resize z-40 flex items-center justify-center transition-opacity
                       ${isDraggingThis && dragState.mode === 'change-progress' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
@@ -378,7 +385,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
                   </div>
 
                   <div className="absolute inset-0 flex items-center px-2 pointer-events-none overflow-hidden">
-                    <span 
+                    <span
                       className="text-xs font-semibold truncate flex items-center"
                       style={{ color: isCompleted ? '#e5e7eb' : (displayProgress > 50 ? assigneeColor.textColor : '#374151') }}
                     >
@@ -393,7 +400,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
                     className="absolute left-0 top-0 bottom-0 w-3 cursor-w-resize hover:bg-black/10 rounded-l-md transition-colors z-20"
                     onMouseDown={(e) => handleMouseDown(e, task, 'resize-left')}
                   />
-                  
+
                   <div
                     className="absolute right-0 top-0 bottom-0 w-3 cursor-e-resize hover:bg-black/10 rounded-r-md transition-colors z-20"
                     onMouseDown={(e) => handleMouseDown(e, task, 'resize-right')}

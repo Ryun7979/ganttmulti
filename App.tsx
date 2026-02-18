@@ -107,7 +107,7 @@ const App: React.FC = () => {
 
   // Snapshot Actions
   const handleCreateSnapshot = (name: string) => {
-    const newSnapshot: Snapshot = { id: generateId(), name, timestamp: Date.now(), tasks: JSON.parse(JSON.stringify(tasks)) };
+    const newSnapshot: Snapshot = { id: generateId(), name, timestamp: Date.now(), tasks: structuredClone(tasks) };
     const updated = [newSnapshot, ...snapshots];
     setSnapshots(updated);
     localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(updated));
@@ -118,8 +118,8 @@ const App: React.FC = () => {
     const { type, taskId, snapshot } = confirmDialog;
     if (type === 'all') {
       setTasks([]);
-      // Reset all settings to defaults (Deep copy to ensure no reference sharing)
-      setAppSettings(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));
+      // Reset all settings to defaults
+      setAppSettings(structuredClone(DEFAULT_SETTINGS));
     }
     else if (type === 'single' && taskId) setTasks(tasks.filter(t => t.id !== taskId));
     else if (type === 'import' && pendingImportTasks) {
@@ -130,7 +130,7 @@ const App: React.FC = () => {
       setPendingImportTasks(null);
       setPendingSettings(null);
     } else if (type === 'snapshot_restore' && snapshot) {
-      setTasks(JSON.parse(JSON.stringify(snapshot.tasks)));
+      setTasks(structuredClone(snapshot.tasks));
       setIsSnapshotDialogOpen(false);
     } else if (type === 'snapshot_delete' && snapshot) {
       const updated = snapshots.filter(s => s.id !== snapshot.id);
