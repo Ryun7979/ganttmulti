@@ -37,13 +37,13 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
   const handlePaletteChange = (index: number, value: string) => {
     const newPalette = [...localSettings.assigneePalette];
-    
+
     // Automatically generate background (very light) and border (light) based on the selected bar color
     const bg = tintColor(value, 0.9);    // 90% white mix
     const border = tintColor(value, 0.6); // 60% white mix
 
-    newPalette[index] = { 
-      ...newPalette[index], 
+    newPalette[index] = {
+      ...newPalette[index],
       bar: value,
       bg: bg,
       border: border
@@ -53,7 +53,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
   const handleHolidayColorChange = (field: keyof typeof localSettings.holidayColors, value: string) => {
     let newColors = { ...localSettings.holidayColors, [field]: value };
-    
+
     // Auto-calculate text colors if header background changes
     if (field === 'headerBg') {
       newColors.dateText = shadeColor(value, 0.6); // Darker shade for date
@@ -74,11 +74,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   };
 
   const handleEventColorChange = (field: keyof typeof localSettings.eventColors, value: string) => {
-    let newColors = { 
+    let newColors = {
       ...localSettings.eventColors,
       // fallback if eventColors is undefined in legacy settings
-      ...(localSettings.eventColors || {}), 
-      [field]: value 
+      ...(localSettings.eventColors || {}),
+      [field]: value
     };
 
     // Auto-calculate text colors if header background changes
@@ -103,10 +103,10 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   const handleAddHoliday = () => {
     setHolidayError(null);
     if (!newHoliday) return;
-    
+
     if (localSettings.customHolidays.includes(newHoliday)) {
-       setHolidayError('既に登録されています。');
-       return;
+      setHolidayError('既に登録されています。');
+      return;
     }
 
     // Validation: Cannot be a custom event
@@ -140,7 +140,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
       setLocalSettings({ ...localSettings, customEvents: updated });
       setNewEvent('');
     } else if (currentEvents.includes(newEvent)) {
-        setEventError('既に登録されています。');
+      setEventError('既に登録されています。');
     }
   };
 
@@ -185,11 +185,10 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === tab.id
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -206,7 +205,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                   type="text"
                   value={localSettings.appName || ''}
                   onChange={(e) => setLocalSettings({ ...localSettings, appName: e.target.value })}
-                  placeholder="例: GanttGroove"
+                  placeholder="例: GanttMalti"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
                 <p className="text-xs text-gray-500">画面左上に表示されるタイトルです。</p>
@@ -217,7 +216,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
           {activeTab === 'palette' && (
             <div className="space-y-4">
               <p className="text-sm text-gray-500 mb-2">
-                担当者に割り当てられる20色のカラーパレットを編集します。<br/>
+                担当者に割り当てられる20色のカラーパレットを編集します。<br />
                 メインカラーを選択すると、背景色と枠線色が自動的に生成されます。
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -229,11 +228,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                         <label className="text-sm font-medium text-gray-700">メインカラー</label>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono text-gray-400">{color.bar}</span>
-                          <input 
-                            type="color" 
-                            value={color.bar} 
-                            onChange={(e) => handlePaletteChange(index, e.target.value)} 
-                            className="w-8 h-8 p-0 border-0 rounded cursor-pointer shadow-sm" 
+                          <input
+                            type="color"
+                            value={color.bar}
+                            onChange={(e) => handlePaletteChange(index, e.target.value)}
+                            className="w-8 h-8 p-0 border-0 rounded cursor-pointer shadow-sm"
                           />
                         </div>
                       </div>
@@ -254,15 +253,15 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               {/* Holidays Section */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">
-                   <div className="flex items-center gap-2">
-                     <div className="w-4 h-4 bg-red-100 rounded-sm border border-red-200"></div>
-                     <h3 className="text-base font-bold text-gray-800">休日・祝日設定</h3>
-                   </div>
-                   <Button variant="secondary" size="sm" onClick={handleResetHolidayColors} icon={<RotateCcw size={12} />} className="text-xs">
-                     デフォルトに戻す
-                   </Button>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-100 rounded-sm border border-red-200"></div>
+                    <h3 className="text-base font-bold text-gray-800">休日・祝日設定</h3>
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={handleResetHolidayColors} icon={<RotateCcw size={12} />} className="text-xs">
+                    デフォルトに戻す
+                  </Button>
                 </div>
-                
+
                 {/* Holiday Colors */}
                 <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                   <div className="flex items-center justify-between mb-2">
@@ -280,63 +279,63 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                         <input type="color" value={localSettings.holidayColors.gridBg} onChange={(e) => handleHolidayColorChange('gridBg', e.target.value)} className="w-8 h-6 p-0 border-0 rounded cursor-pointer" />
                       </div>
                     </div>
-                    
+
                     {/* Preview Box */}
                     <div className="border rounded bg-white p-2 flex flex-col items-center justify-center gap-1" style={{ backgroundColor: localSettings.holidayColors.headerBg }}>
-                        <span className="text-sm font-bold" style={{ color: localSettings.holidayColors.dateText }}>24</span>
-                        <span className="text-xs" style={{ color: localSettings.holidayColors.weekdayText }}>祝日</span>
-                        <div className="text-[10px] text-gray-400 bg-white/80 px-1 rounded mt-1">プレビュー</div>
+                      <span className="text-sm font-bold" style={{ color: localSettings.holidayColors.dateText }}>24</span>
+                      <span className="text-xs" style={{ color: localSettings.holidayColors.weekdayText }}>祝日</span>
+                      <div className="text-[10px] text-gray-400 bg-white/80 px-1 rounded mt-1">プレビュー</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Custom Holidays List */}
                 <div>
-                   <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">カスタム休日</h4>
-                   <div className="flex flex-col gap-2 mb-3">
-                      <div className="flex gap-2">
-                        <input
-                          type="date"
-                          value={newHoliday}
-                          onChange={(e) => { setNewHoliday(e.target.value); setHolidayError(null); }}
-                          className={`flex-1 px-3 py-2 border rounded-lg text-sm ${holidayError ? 'border-red-500 focus:ring-red-200' : 'border-gray-300'}`}
-                        />
-                        <Button onClick={handleAddHoliday} disabled={!newHoliday} icon={<Plus size={16} />}>追加</Button>
+                  <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">カスタム休日</h4>
+                  <div className="flex flex-col gap-2 mb-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={newHoliday}
+                        onChange={(e) => { setNewHoliday(e.target.value); setHolidayError(null); }}
+                        className={`flex-1 px-3 py-2 border rounded-lg text-sm ${holidayError ? 'border-red-500 focus:ring-red-200' : 'border-gray-300'}`}
+                      />
+                      <Button onClick={handleAddHoliday} disabled={!newHoliday} icon={<Plus size={16} />}>追加</Button>
+                    </div>
+                    {holidayError && (
+                      <div className="flex items-center gap-1 text-red-500 text-xs px-1">
+                        <AlertCircle size={12} />
+                        <span>{holidayError}</span>
                       </div>
-                      {holidayError && (
-                        <div className="flex items-center gap-1 text-red-500 text-xs px-1">
-                          <AlertCircle size={12} />
-                          <span>{holidayError}</span>
-                        </div>
-                      )}
+                    )}
                   </div>
                   <div className="border rounded-lg overflow-hidden max-h-32 overflow-y-auto bg-white">
-                     {localSettings.customHolidays.length === 0 ? (
-                       <div className="p-3 text-center text-xs text-gray-400">設定なし</div>
-                     ) : (
-                       <ul className="divide-y divide-gray-100">
-                         {localSettings.customHolidays.map(date => (
-                           <li key={date} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 text-sm">
-                              <span className="font-mono text-gray-700">{date}</span>
-                              <button onClick={() => handleRemoveHoliday(date)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
-                           </li>
-                         ))}
-                       </ul>
-                     )}
+                    {localSettings.customHolidays.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-gray-400">設定なし</div>
+                    ) : (
+                      <ul className="divide-y divide-gray-100">
+                        {localSettings.customHolidays.map(date => (
+                          <li key={date} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 text-sm">
+                            <span className="font-mono text-gray-700">{date}</span>
+                            <button onClick={() => handleRemoveHoliday(date)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Events Section */}
               <div className="space-y-4">
-                 <div className="flex items-center justify-between border-b pb-2">
-                   <div className="flex items-center gap-2">
-                     <div className="w-4 h-4 bg-yellow-100 rounded-sm border border-yellow-200"></div>
-                     <h3 className="text-base font-bold text-gray-800">イベント日設定</h3>
-                   </div>
-                   <Button variant="secondary" size="sm" onClick={handleResetEventColors} icon={<RotateCcw size={12} />} className="text-xs">
-                     デフォルトに戻す
-                   </Button>
+                <div className="flex items-center justify-between border-b pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-100 rounded-sm border border-yellow-200"></div>
+                    <h3 className="text-base font-bold text-gray-800">イベント日設定</h3>
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={handleResetEventColors} icon={<RotateCcw size={12} />} className="text-xs">
+                    デフォルトに戻す
+                  </Button>
                 </div>
 
                 {/* Event Colors */}
@@ -356,20 +355,20 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                         <input type="color" value={localSettings.eventColors?.gridBg || '#fefce8'} onChange={(e) => handleEventColorChange('gridBg', e.target.value)} className="w-8 h-6 p-0 border-0 rounded cursor-pointer" />
                       </div>
                     </div>
-                    
+
                     {/* Preview Box */}
                     <div className="border rounded bg-white p-2 flex flex-col items-center justify-center gap-1" style={{ backgroundColor: localSettings.eventColors?.headerBg || '#fef9c3' }}>
-                        <span className="text-sm font-bold" style={{ color: localSettings.eventColors?.dateText || '#ca8a04' }}>15</span>
-                        <span className="text-xs" style={{ color: localSettings.eventColors?.weekdayText || '#eab308' }}>催事</span>
-                        <div className="text-[10px] text-gray-400 bg-white/80 px-1 rounded mt-1">プレビュー</div>
+                      <span className="text-sm font-bold" style={{ color: localSettings.eventColors?.dateText || '#ca8a04' }}>15</span>
+                      <span className="text-xs" style={{ color: localSettings.eventColors?.weekdayText || '#eab308' }}>催事</span>
+                      <div className="text-[10px] text-gray-400 bg-white/80 px-1 rounded mt-1">プレビュー</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Custom Events List */}
                 <div>
-                   <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">カスタムイベント日</h4>
-                   <div className="flex flex-col gap-2 mb-3">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">カスタムイベント日</h4>
+                  <div className="flex flex-col gap-2 mb-3">
                     <div className="flex gap-2">
                       <input
                         type="date"
@@ -380,25 +379,25 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       <Button onClick={handleAddEvent} disabled={!newEvent} icon={<Plus size={16} />}>追加</Button>
                     </div>
                     {eventError && (
-                        <div className="flex items-center gap-1 text-red-500 text-xs px-1">
-                          <AlertCircle size={12} />
-                          <span>{eventError}</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1 text-red-500 text-xs px-1">
+                        <AlertCircle size={12} />
+                        <span>{eventError}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="border rounded-lg overflow-hidden max-h-32 overflow-y-auto bg-white">
-                     {(!localSettings.customEvents || localSettings.customEvents.length === 0) ? (
-                       <div className="p-3 text-center text-xs text-gray-400">設定なし</div>
-                     ) : (
-                       <ul className="divide-y divide-gray-100">
-                         {localSettings.customEvents.map(date => (
-                           <li key={date} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 text-sm">
-                              <span className="font-mono text-gray-700">{date}</span>
-                              <button onClick={() => handleRemoveEvent(date)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
-                           </li>
-                         ))}
-                       </ul>
-                     )}
+                    {(!localSettings.customEvents || localSettings.customEvents.length === 0) ? (
+                      <div className="p-3 text-center text-xs text-gray-400">設定なし</div>
+                    ) : (
+                      <ul className="divide-y divide-gray-100">
+                        {localSettings.customEvents.map(date => (
+                          <li key={date} className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 text-sm">
+                            <span className="font-mono text-gray-700">{date}</span>
+                            <button onClick={() => handleRemoveEvent(date)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               </div>
@@ -410,7 +409,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg">
                 <h3 className="text-sm font-bold text-blue-800 mb-2">P2P IDの設定</h3>
                 <p className="text-xs text-blue-700 mb-4">
-                  現在のIDを破棄し、新しいIDを生成します。<br/>
+                  現在のIDを破棄し、新しいIDを生成します。<br />
                   現在接続中のピアとは切断されます。
                 </p>
                 <div className="flex items-center gap-3">
@@ -433,9 +432,9 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               <div>
                 <h3 className="text-lg font-bold flex items-center gap-2 mb-3 pb-2 border-b">
                   <BookOpen size={20} className="text-blue-500" />
-                  GanttGroove 簡易マニュアル
+                  GanttMalti 簡易マニュアル
                 </h3>
-                
+
                 <section className="mb-6">
                   <h4 className="font-bold text-gray-900 mb-2">1. 基本操作</h4>
                   <ul className="list-disc pl-5 space-y-1 text-sm">

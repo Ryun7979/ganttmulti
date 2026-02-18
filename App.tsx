@@ -23,17 +23,17 @@ const INITIAL_TASKS: Task[] = [
   { id: '3', name: 'クライアント確認', assignee: '田中', startDate: formatDate(addDays(new Date(), 9)), endDate: formatDate(addDays(new Date(), 12)), progress: 0 },
 ];
 
-const SNAPSHOT_STORAGE_KEY = 'ganttgroove-snapshots-v1';
+const SNAPSHOT_STORAGE_KEY = 'ganttmalti-snapshots-v1';
 
 const App: React.FC = () => {
   // --- 1. Core Logic (Persistence & State) ---
-  const { 
-    tasks, setTasks, undo, redo, canUndo, canRedo, settings, setAppSettings 
+  const {
+    tasks, setTasks, undo, redo, canUndo, canRedo, settings, setAppSettings
   } = useAppPersistence(INITIAL_TASKS);
 
   // --- 2. Custom Hooks for UI Logic ---
-  const { 
-    sidebarWidth, isResizingSidebar, handleResizeStart 
+  const {
+    sidebarWidth, isResizingSidebar, handleResizeStart
   } = useSidebarResize(320);
 
   const {
@@ -44,7 +44,7 @@ const App: React.FC = () => {
   useKeyboardShortcuts({ undo, redo });
 
   // --- 3. Collaboration Hook ---
-  const { 
+  const {
     myPeerId, connectToPeer, isConnected, connectionCount, regenerateId
   } = useCollaboration(tasks, setTasks);
 
@@ -55,7 +55,7 @@ const App: React.FC = () => {
   const [isSnapshotDialogOpen, setIsSnapshotDialogOpen] = useState(false);
   const [isCollabDialogOpen, setIsCollabDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+
   // --- 5. File Export/Import Hook ---
   const {
     fileInputRef, exportContainerRef, taskListRef, ganttChartRef,
@@ -83,7 +83,7 @@ const App: React.FC = () => {
   }>({ isOpen: false, type: 'single' });
 
   // --- Event Handlers (Remaining logic not extracted yet) ---
-  
+
   // Task Manipulation
   const handleSaveTask = (task: Task) => {
     if (editingTask) setTasks(tasks.map(t => t.id === task.id ? task : t));
@@ -164,7 +164,7 @@ const App: React.FC = () => {
       case 'error': return { title: 'インポートエラー', message: confirmDialog.errorMessage || 'エラー', confirmLabel: '閉じる', confirmVariant: 'danger' as const, showCancel: false };
       case 'import': {
         const importAppName = pendingSettings?.appName;
-        const msg = importAppName 
+        const msg = importAppName
           ? `「${importAppName}」のデータをインポートしますか？\n現在のデータは上書きされ、設定（祝日・イベント日など）も更新されます。`
           : 'タスクデータをインポートしますか？\n現在のデータは上書きされます。';
         return { title: 'タスクのインポート', message: msg, confirmLabel: 'インポート', confirmVariant: 'primary' as const, showCancel: true };
@@ -181,8 +181,8 @@ const App: React.FC = () => {
     <div className="flex flex-col h-screen bg-gray-50 text-gray-800">
       <input type="file" accept=".json" ref={fileInputRef} onChange={(e) => handleFileChange(e, handleImportSuccess, handleImportError)} style={{ display: 'none' }} />
 
-      <Toolbar 
-        appName={settings.appName || 'GanttGroove'}
+      <Toolbar
+        appName={settings.appName || 'GanttMalti'}
         tasks={tasks}
         isConnected={isConnected}
         viewMode={viewMode}
@@ -226,8 +226,8 @@ const App: React.FC = () => {
                   // --- Render Group Header ---
                   if ('type' in item && item.type === 'group') {
                     return (
-                      <div 
-                        key={item.id} 
+                      <div
+                        key={item.id}
                         className="h-8 bg-gray-50 border-b border-gray-200 flex items-center px-4 font-bold text-gray-600 text-xs sticky left-0 z-10 cursor-pointer hover:bg-gray-100 transition-colors select-none"
                         onClick={() => toggleGroup(item.id)}
                       >
@@ -245,26 +245,26 @@ const App: React.FC = () => {
                   const task = item as Task;
                   const isCompleted = task.progress === 100;
                   const isDraggedItem = draggedTaskIndex === index;
-                  
+
                   return (
-                    <div key={task.id} 
-                      draggable={groupBy === 'default'} 
-                      onDragStart={(e) => handleDragStart(e, index)} 
-                      onDragOver={(e) => handleDragOver(e, index)} 
+                    <div key={task.id}
+                      draggable={groupBy === 'default'}
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
                       onDragEnd={handleDragEnd}
                       className={`h-12 flex items-center px-2 border-b border-gray-100 transition-all duration-200 group relative
-                        ${isDraggedItem 
+                        ${isDraggedItem
                           ? 'bg-blue-50 border-2 border-dashed border-blue-400 opacity-60 shadow-inner' // Active Drag Item (Placeholder)
-                          : isCompleted 
-                            ? 'bg-gray-100' 
+                          : isCompleted
+                            ? 'bg-gray-100'
                             : 'hover:bg-blue-50/50 hover:shadow-sm' // Normal Item
                         }
                         ${groupBy === 'assignee' && !isCompleted ? 'hover:bg-gray-50' : ''}
                       `}
                     >
                       <div className={`w-8 flex items-center justify-center transition-colors 
-                        ${groupBy === 'default' 
-                          ? isDraggedItem ? 'text-blue-500 cursor-grabbing' : 'text-gray-300 cursor-grab group-hover:text-blue-400' 
+                        ${groupBy === 'default'
+                          ? isDraggedItem ? 'text-blue-500 cursor-grabbing' : 'text-gray-300 cursor-grab group-hover:text-blue-400'
                           : 'cursor-default opacity-20'
                         }
                       `}>
@@ -288,17 +288,17 @@ const App: React.FC = () => {
             <div className={`w-1 cursor-col-resize hover:bg-blue-400 bg-gray-200 z-30 transition-colors flex-shrink-0 ${isResizingSidebar ? 'bg-blue-500' : ''}`} onMouseDown={handleResizeStart} />
             {/* Gantt Area */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-white">
-              <GanttChart 
-                ref={ganttChartRef} 
-                onScroll={(e) => handleScroll(e, taskListRef)} 
-                items={displayItems} 
-                timelineStart={timelineStart} 
-                timelineEnd={timelineEnd} 
+              <GanttChart
+                ref={ganttChartRef}
+                onScroll={(e) => handleScroll(e, taskListRef)}
+                items={displayItems}
+                timelineStart={timelineStart}
+                timelineEnd={timelineEnd}
                 viewMode={viewMode}
                 settings={settings}
-                onTaskUpdate={handleUpdateTask} 
+                onTaskUpdate={handleUpdateTask}
                 onEditTask={(t) => { setEditingTask(t); setIsFormOpen(true); }}
-                onToggleGroup={toggleGroup} 
+                onToggleGroup={toggleGroup}
               />
             </div>
           </div>
@@ -306,16 +306,16 @@ const App: React.FC = () => {
       </main>
 
       <footer className="bg-white border-t border-gray-200 px-6 py-3 text-xs text-gray-500 flex justify-between">
-        <p>GanttGroove v1.0.0</p>
+        <p>GanttMalti v1.0.0</p>
         <p className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span> 進行中 <span className="w-2 h-2 rounded-full bg-gray-500 inline-block ml-2"></span> 完了</p>
       </footer>
 
       {isFormOpen && <TaskForm initialData={editingTask} onSave={handleSaveTask} onClose={() => { setIsFormOpen(false); setEditingTask(null); }} />}
-      <SnapshotDialog isOpen={isSnapshotDialogOpen} onClose={() => setIsSnapshotDialogOpen(false)} snapshots={snapshots} onCreateSnapshot={handleCreateSnapshot} onRestoreSnapshot={(s) => setConfirmDialog({ isOpen: true, type: 'snapshot_restore', snapshot: s })} onDeleteSnapshot={(id) => { const s = snapshots.find(x => x.id === id); if(s) setConfirmDialog({ isOpen: true, type: 'snapshot_delete', snapshot: s }); }} />
-      <SettingsDialog 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
-        settings={settings} 
+      <SnapshotDialog isOpen={isSnapshotDialogOpen} onClose={() => setIsSnapshotDialogOpen(false)} snapshots={snapshots} onCreateSnapshot={handleCreateSnapshot} onRestoreSnapshot={(s) => setConfirmDialog({ isOpen: true, type: 'snapshot_restore', snapshot: s })} onDeleteSnapshot={(id) => { const s = snapshots.find(x => x.id === id); if (s) setConfirmDialog({ isOpen: true, type: 'snapshot_delete', snapshot: s }); }} />
+      <SettingsDialog
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
         onSave={setAppSettings}
         onRegeneratePeerId={regenerateId}
       />

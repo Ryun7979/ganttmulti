@@ -69,7 +69,7 @@ export const DEFAULT_PALETTE: ColorSet[] = [
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  appName: 'GanttGroove',
+  appName: 'GanttMalti',
   assigneePalette: DEFAULT_PALETTE,
   holidayColors: {
     headerBg: '#fef2f2', // bg-red-50
