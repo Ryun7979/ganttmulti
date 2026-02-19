@@ -329,7 +329,9 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
             >
               {viewMode === 'Day' && (
                 <>
-                  <span style={{ color: dateTextColor }}>{date.getDate()}</span>
+                  <span style={{ color: dateTextColor }}>
+                    {date.getDate() === 1 ? `${date.getMonth() + 1}/${date.getDate()}` : date.getDate()}
+                  </span>
                   <span style={{ fontSize: '10px', color: weekdayTextColor }}>
                     {date.toLocaleDateString('ja-JP', { weekday: 'narrow' })}
                   </span>
