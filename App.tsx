@@ -197,7 +197,7 @@ const App: React.FC = () => {
     return displayItems
       .filter((item): item is Task => !('type' in item))
       .reduce((acc, task) => {
-        return acc + calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings.customHolidays);
+        return acc + calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings);
       }, 0);
   }, [displayItems, settings.customHolidays]);
 
@@ -311,7 +311,7 @@ const App: React.FC = () => {
                         <p className={`text-[10px] truncate ${isCompleted ? 'text-gray-400' : 'text-gray-500'}`}>{task.startDate} - {task.endDate}</p>
                       </div>
                       <div className={`w-12 text-right text-xs truncate ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings.customHolidays)}
+                        {calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings)}
                       </div>
                       <div className={`w-20 text-right text-xs truncate mr-2 cursor-pointer ${isCompleted ? 'text-gray-400' : (groupBy === 'assignee' ? 'font-bold text-blue-700' : 'text-gray-600')}`}>{task.assignee}</div>
                       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all gap-1">
@@ -353,7 +353,7 @@ const App: React.FC = () => {
         <p className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span> 進行中 <span className="w-2 h-2 rounded-full bg-gray-500 inline-block ml-2"></span> 完了</p>
       </footer>
 
-      {isFormOpen && <TaskForm initialData={editingTask} onSave={handleSaveTask} onClose={() => { setIsFormOpen(false); setEditingTask(null); }} customHolidays={settings.customHolidays} />}
+      {isFormOpen && <TaskForm initialData={editingTask} onSave={handleSaveTask} onClose={() => { setIsFormOpen(false); setEditingTask(null); }} settings={settings} />}
       <SnapshotDialog isOpen={isSnapshotDialogOpen} onClose={() => setIsSnapshotDialogOpen(false)} snapshots={snapshots} onCreateSnapshot={handleCreateSnapshot} onRestoreSnapshot={(s) => setConfirmDialog({ isOpen: true, type: 'snapshot_restore', snapshot: s })} onDeleteSnapshot={(id) => { const s = snapshots.find(x => x.id === id); if (s) setConfirmDialog({ isOpen: true, type: 'snapshot_delete', snapshot: s }); }} />
       <SettingsDialog
         isOpen={isSettingsOpen}

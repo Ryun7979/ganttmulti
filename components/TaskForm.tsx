@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Task } from '../types';
+import { Task, AppSettings } from '../types';
 import { Button } from './Button';
 import { Modal } from './Modal';
 import { generateId, formatDate, addDays, calculateWorkdays, addWorkdays, parseDate } from '../utils';
@@ -9,10 +9,10 @@ interface TaskFormProps {
   initialData?: Task | null;
   onSave: (task: Task) => void;
   onClose: () => void;
-  customHolidays: string[];
+  settings: AppSettings;
 }
 
-export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose, customHolidays }) => {
+export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose, settings }) => {
   const [name, setName] = useState('');
   const [assignee, setAssignee] = useState('');
   const [startDate, setStartDate] = useState(formatDate(new Date()));
@@ -27,7 +27,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       setAssignee(initialData.assignee);
       setStartDate(initialData.startDate);
       setEndDate(initialData.endDate);
-      setWorkdays(calculateWorkdays(parseDate(initialData.startDate), parseDate(initialData.endDate), customHolidays));
+      setWorkdays(calculateWorkdays(parseDate(initialData.startDate), parseDate(initialData.endDate), settings));
       setProgress(initialData.progress);
     } else {
       // Reset for new task
@@ -38,10 +38,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       setAssignee('');
       setStartDate(initialStart);
       setEndDate(initialEnd);
-      setWorkdays(calculateWorkdays(parseDate(initialStart), parseDate(initialEnd), customHolidays));
+      setWorkdays(calculateWorkdays(parseDate(initialStart), parseDate(initialEnd), settings));
       setProgress(0);
     }
-  }, [initialData, customHolidays]);
+  }, [initialData, settings]);
 
   // Handlers for bi-directional binding
   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,7 +49,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
     setStartDate(newStart);
     if (newStart && endDate) {
       // 開始日が変更されたら、終了日を維持して稼働日を再計算
-      const days = calculateWorkdays(parseDate(newStart), parseDate(endDate), customHolidays);
+      const days = calculateWorkdays(parseDate(newStart), parseDate(endDate), settings);
       setWorkdays(days);
     }
   };
@@ -59,7 +59,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
     setEndDate(newEnd);
     if (startDate && newEnd) {
       // 終了日が変更されたら、稼働日を再計算
-      const days = calculateWorkdays(parseDate(startDate), parseDate(newEnd), customHolidays);
+      const days = calculateWorkdays(parseDate(startDate), parseDate(newEnd), settings);
       setWorkdays(days);
     }
   };
@@ -69,7 +69,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
     setWorkdays(val);
     if (!isNaN(val) && val > 0 && startDate) {
       // 稼働日が変更されたら、終了日を再計算 (addWorkdays)
-      const newEnd = addWorkdays(parseDate(startDate), val, customHolidays);
+      const newEnd = addWorkdays(parseDate(startDate), val, settings);
       setEndDate(formatDate(newEnd));
     }
   };

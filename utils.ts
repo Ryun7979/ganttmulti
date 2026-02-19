@@ -84,7 +84,18 @@ export const DEFAULT_SETTINGS: AppSettings = {
     dateText: '#ca8a04', // text-yellow-600
     weekdayText: '#eab308' // text-yellow-500
   },
-  customEvents: []
+  customEvents: [],
+  workdayConfig: {
+    monday: true,
+    tuesday: true,
+    wednesday: true,
+    thursday: true,
+    friday: true,
+    saturday: false, // Default: Exclude (Off)
+    sunday: false,   // Default: Exclude (Off)
+    holidays: false, // Default: Exclude (Off)
+    custom: false    // Default: Exclude (Off) - Custom holidays are holidays
+  }
 };
 
 // Replaced simple array export with logic that uses settings (handled in component)
@@ -263,6 +274,7 @@ const getHolidaysForYear = (year: number): Set<string> => {
 };
 
 // Helper to check if a date is a holiday (Japanese or Custom)
+// This strictly checks if it IS a holiday, not if it is a workday.
 export const isHoliday = (date: Date, customHolidays: string[] = []): boolean => {
   const dateStr = formatDate(date);
   // Check custom holidays first
@@ -289,8 +301,42 @@ export const isWeekend = (date: Date): boolean => {
 // For backward compatibility (deprecated use)
 export const isJapaneseHoliday = (date: Date) => isHoliday(date);
 
+// Helper to check if a date is a workday based on settings
+export const isWorkday = (date: Date, settings: AppSettings): boolean => {
+  const dateStr = formatDate(date);
+  const { workdayConfig, customHolidays } = settings;
+
+  // 1. Custom Holidays
+  if (customHolidays.includes(dateStr)) {
+    return workdayConfig.custom;
+  }
+
+  // 2. National Holidays
+  // We check purely against Japanese holidays here, disregarding strict custom holiday overrides above
+  // because we already handled the "Custom as Holiday" case.
+  // Although `isHoliday` includes custom logic, we want pure Japanese holiday logic + Config.
+  const year = date.getFullYear();
+  const japHolidays = getHolidaysForYear(year);
+  if (japHolidays.has(dateStr)) {
+    return workdayConfig.holidays;
+  }
+
+  // 3. Days of week
+  const day = date.getDay();
+  if (day === 0) return workdayConfig.sunday;
+  if (day === 6) return workdayConfig.saturday;
+  if (day === 1) return workdayConfig.monday;
+  if (day === 2) return workdayConfig.tuesday;
+  if (day === 3) return workdayConfig.wednesday;
+  if (day === 4) return workdayConfig.thursday;
+  if (day === 5) return workdayConfig.friday;
+
+  return true;
+};
+
 // Helper to calculate workdays between two dates (inclusive)
-export const calculateWorkdays = (start: Date, end: Date, customHolidays: string[] = []): number => {
+// Updated to accept full settings
+export const calculateWorkdays = (start: Date, end: Date, settings: AppSettings): number => {
   let count = 0;
   let current = new Date(start);
   const endDate = new Date(end);
@@ -300,7 +346,7 @@ export const calculateWorkdays = (start: Date, end: Date, customHolidays: string
   endDate.setHours(0, 0, 0, 0);
 
   while (current <= endDate) {
-    if (!isWeekend(current) && !isHoliday(current, customHolidays)) {
+    if (isWorkday(current, settings)) {
       count++;
     }
     current.setDate(current.getDate() + 1);
@@ -309,19 +355,20 @@ export const calculateWorkdays = (start: Date, end: Date, customHolidays: string
 };
 
 // 指定された開始日から指定された稼働日数分進めた日付を計算する
-export const addWorkdays = (startDate: Date, workdays: number, customHolidays: string[] = []): Date => {
+// Updated to accept full settings
+export const addWorkdays = (startDate: Date, workdays: number, settings: AppSettings): Date => {
   let current = new Date(startDate);
   let remaining = workdays;
 
   // まず開始日自身をチェック
-  if (!isWeekend(current) && !isHoliday(current, customHolidays)) {
+  if (isWorkday(current, settings)) {
     remaining--;
   }
 
   // 残りの稼働日分だけ進める
   while (remaining > 0) {
     current.setDate(current.getDate() + 1);
-    if (!isWeekend(current) && !isHoliday(current, customHolidays)) {
+    if (isWorkday(current, settings)) {
       remaining--;
     }
   }

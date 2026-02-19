@@ -102,7 +102,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
         start: s,
         end: e,
         progress: t.progress,
-        workdays: calculateWorkdays(s, e, settings.customHolidays)
+        workdays: calculateWorkdays(s, e, settings)
       };
     });
 
@@ -167,7 +167,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
 
       const snapshot = currentDragState.initialSnapshots?.[currentDragState.taskId!];
       if (snapshot?.workdays) {
-        newEnd = addWorkdays(newStart, snapshot.workdays, settings.customHolidays);
+        newEnd = addWorkdays(newStart, snapshot.workdays, settings);
       } else {
         newEnd = addDays(currentDragState.originalEnd, deltaDays);
       }
@@ -243,7 +243,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
               if (t) {
                 const newS = addDays(snapshot.start, startDiff);
                 const newE = snapshot.workdays
-                  ? addWorkdays(newS, snapshot.workdays, settings.customHolidays)
+                  ? addWorkdays(newS, snapshot.workdays, settings)
                   : addDays(snapshot.end, startDiff);
 
                 updates.push({
@@ -398,7 +398,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
           const startDelta = diffDays(dragState.currentStart!, dragState.originalStart);
           const currentS = addDays(snap.start, startDelta);
           const currentE = snap.workdays
-            ? addWorkdays(currentS, snap.workdays, settings.customHolidays)
+            ? addWorkdays(currentS, snap.workdays, settings)
             : addDays(snap.end, startDelta);
 
           return (
@@ -446,7 +446,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
               const startDelta = diffDays(dragState.currentStart!, dragState.originalStart);
               displayStart = addDays(snap.start, startDelta);
               displayEnd = snap.workdays
-                ? addWorkdays(displayStart, snap.workdays, settings.customHolidays)
+                ? addWorkdays(displayStart, snap.workdays, settings)
                 : addDays(snap.end, startDelta);
               // progress doesn't change on move
             } else if (isDraggingThis) {

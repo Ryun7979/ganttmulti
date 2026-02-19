@@ -62,6 +62,19 @@ export interface EventColors {
   weekdayText: string;
 }
 
+// 稼働日設定（true=稼働日, false=休日）
+export interface WorkdayConfig {
+  monday: boolean; // 現状UIにはないが、データ構造として持っておく
+  tuesday: boolean;
+  wednesday: boolean;
+  thursday: boolean;
+  friday: boolean;
+  saturday: boolean;
+  sunday: boolean;
+  holidays: boolean; // 日本の祝日
+  custom: boolean;   // カスタム休日
+}
+
 export interface AppSettings {
   appName: string;
   assigneePalette: ColorSet[];
@@ -69,4 +82,5 @@ export interface AppSettings {
   customHolidays: string[]; // ISO Date strings YYYY-MM-DD
   eventColors: EventColors;
   customEvents: string[]; // ISO Date strings YYYY-MM-DD
+  workdayConfig: WorkdayConfig;
 }

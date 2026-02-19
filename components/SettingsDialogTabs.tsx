@@ -21,6 +21,66 @@ export const GeneralSettingsTab: React.FC<{
             />
             <p className="text-xs text-gray-500">画面左上に表示されるタイトルです。</p>
         </div>
+
+        <div className="space-y-3 pt-4 border-t">
+            <h4 className="text-sm font-bold text-gray-700">稼働日設定</h4>
+            <p className="text-xs text-gray-500 mb-1">チェックを入れた項目は「稼働日」として計算されます。</p>
+            <p className="text-[10px] text-red-500 mb-2">※ 途中で変更された場合の動作保証はありません</p>
+
+            <div className="space-y-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={settings.workdayConfig?.saturday ?? false} // Default false if undefined
+                        onChange={(e) => onChange({
+                            ...settings,
+                            workdayConfig: { ...settings.workdayConfig, saturday: e.target.checked }
+                        })}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">土曜日</span>
+                </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={settings.workdayConfig?.sunday ?? false}
+                        onChange={(e) => onChange({
+                            ...settings,
+                            workdayConfig: { ...settings.workdayConfig, sunday: e.target.checked }
+                        })}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">日曜日</span>
+                </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={settings.workdayConfig?.holidays ?? false}
+                        onChange={(e) => onChange({
+                            ...settings,
+                            workdayConfig: { ...settings.workdayConfig, holidays: e.target.checked }
+                        })}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">祝日（日本の祝日）</span>
+                </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={settings.workdayConfig?.custom ?? false}
+                        onChange={(e) => onChange({
+                            ...settings,
+                            workdayConfig: { ...settings.workdayConfig, custom: e.target.checked }
+                        })}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">カスタム休日</span>
+                </label>
+            </div>
+        </div>
     </div>
 );
 
