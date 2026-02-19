@@ -5,6 +5,8 @@ export interface Task {
   assignee: string;
   startDate: string; // ISO Date string YYYY-MM-DD
   endDate: string;   // ISO Date string YYYY-MM-DD
+  startTime?: 'AM' | 'PM'; // Default: AM
+  endTime?: 'AM' | 'PM';   // Default: PM
   progress: number;  // 0-100
   workdays?: number; // Optional: calculated workdays
 }
@@ -27,12 +29,23 @@ export interface DragState {
   initialX: number;
   originalStart: Date;
   originalEnd: Date;
+  originalStartTime?: 'AM' | 'PM';
+  originalEndTime?: 'AM' | 'PM';
   // Temporary state for visual feedback during drag
   currentStart?: Date;
   currentEnd?: Date;
+  currentStartTime?: 'AM' | 'PM';
+  currentEndTime?: 'AM' | 'PM';
   currentProgress?: number;
   // For bulk dragging
-  initialSnapshots?: Record<string, { start: Date; end: Date; progress: number; workdays?: number }>;
+  initialSnapshots?: Record<string, {
+    start: Date;
+    end: Date;
+    startTime?: 'AM' | 'PM';
+    endTime?: 'AM' | 'PM';
+    progress: number;
+    workdays?: number
+  }>;
 }
 
 export interface Snapshot {
@@ -84,4 +97,5 @@ export interface AppSettings {
   eventColors: EventColors;
   customEvents: string[]; // ISO Date strings YYYY-MM-DD
   workdayConfig: WorkdayConfig;
+  minDayUnit?: number; // 1 | 0.5 | 0.25 (default: 1)
 }

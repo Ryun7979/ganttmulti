@@ -8,6 +8,13 @@ export const VIEW_SETTINGS = {
   Month: { pixelsPerDay: 4, label: '月' }, // 1 month approx 120px
 };
 
+export const getPixelsPerDay = (viewMode: ViewMode, minDayUnit: number = 1): number => {
+  if (viewMode === 'Day' && minDayUnit < 1) {
+    return 60; // Expanded width for fractional days
+  }
+  return VIEW_SETTINGS[viewMode].pixelsPerDay;
+};
+
 // Helper to generate lighter tints of a color
 export const tintColor = (hex: string, factor: number): string => {
   if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) return hex;
@@ -70,6 +77,7 @@ export const DEFAULT_PALETTE: ColorSet[] = [
 
 export const DEFAULT_SETTINGS: AppSettings = {
   appName: 'GanttMalti',
+  minDayUnit: 1,
   assigneePalette: DEFAULT_PALETTE,
   holidayColors: {
     headerBg: '#fef2f2', // bg-red-50
@@ -336,7 +344,13 @@ export const isWorkday = (date: Date, settings: AppSettings): boolean => {
 
 // Helper to calculate workdays between two dates (inclusive)
 // Updated to accept full settings
-export const calculateWorkdays = (start: Date, end: Date, settings: AppSettings): number => {
+export const calculateWorkdays = (
+  start: Date,
+  end: Date,
+  settings: AppSettings,
+  startTime: 'AM' | 'PM' = 'AM',
+  endTime: 'AM' | 'PM' = 'PM'
+): number => {
   let count = 0;
   let current = new Date(start);
   const endDate = new Date(end);
@@ -345,33 +359,135 @@ export const calculateWorkdays = (start: Date, end: Date, settings: AppSettings)
   current.setHours(0, 0, 0, 0);
   endDate.setHours(0, 0, 0, 0);
 
+  // Swap if end < start (sanity check)
+  if (current > endDate) return 0;
+
   while (current <= endDate) {
     if (isWorkday(current, settings)) {
       count++;
     }
     current.setDate(current.getDate() + 1);
   }
-  return count;
+
+  // Adjust for AM/PM
+  // Case 1: Start PM -> Missed morning (-0.5)
+  if (startTime === 'PM') count -= 0.5;
+
+  // Case 2: End AM -> Missed afternoon (-0.5)
+  if (endTime === 'AM') count -= 0.5;
+
+  // Safety: If start == end and Start PM and End AM, count might be negative calculationally?
+  // 2/19(PM) to 2/19(AM) <- Invalid range if on same day.
+  // Logic: 2/19 PM > 2/19 AM.
+  // If user sets Start PM, End AM on same day, that is 0 or invalid (-0.5).
+  // We should max(0, count).
+
+  return Math.max(0, count);
 };
 
-// 指定された開始日から指定された稼働日数分進めた日付を計算する
-// Updated to accept full settings
-export const addWorkdays = (startDate: Date, workdays: number, settings: AppSettings): Date => {
+// 稼働日を加算して終了日時（日付＋AM/PM）を計算する
+export const calculateEndDate = (
+  startDate: Date,
+  workdays: number,
+  settings: AppSettings,
+  startTiming: 'AM' | 'PM' = 'AM'
+): { date: Date, timing: 'AM' | 'PM' } => {
+
   let current = new Date(startDate);
   let remaining = workdays;
 
-  // まず開始日自身をチェック
-  if (isWorkday(current, settings)) {
-    remaining--;
-  }
+  // Initial deduction logic
+  // If starting AM: We have 1.0 day potential today.
+  // If starting PM: We have 0.5 day potential today.
 
-  // 残りの稼働日分だけ進める
-  while (remaining > 0) {
-    current.setDate(current.getDate() + 1);
-    if (isWorkday(current, settings)) {
-      remaining--;
+  // Check if start date is workday
+  if (isWorkday(current, settings)) {
+    if (startTiming === 'AM') {
+      if (remaining <= 0.5) return { date: current, timing: 'AM' }; // 0.5 day task (AM-AM)
+      remaining -= 1.0;
+      // If remaining becomes 0, it means it fit exactly in today (AM-PM).
+      // But loop logic usually handles 'finding the day'.
+      // Let's change strategy: consume capacity.
+    } else {
+      // PM Start
+      if (remaining <= 0.5) return { date: current, timing: 'PM' }; // 0.5 day task (PM-PM)
+      remaining -= 0.5;
     }
   }
 
-  return current;
+  // If we still have remaining work, find next days
+  while (remaining > 0) {
+    current.setDate(current.getDate() + 1);
+    if (isWorkday(current, settings)) {
+      if (remaining <= 0.5) {
+        // Fits in morning of this new day
+        return { date: current, timing: 'AM' };
+      }
+      remaining -= 1.0;
+    }
+  }
+
+  // If we exact-finished on a day (remaining <= 0 condition met exactly e.g. -0.5??)
+  // Actually simplicity:
+  // If remaining was 1.0. start AM. -1.0 = 0.
+  // We want End PM of that day.
+  // My logic above: if remaining <= 0.5 returns...
+  // Start AM. days=1.0. 
+  // IsWorkday. Remaining > 0.5. Remaining becomes 0. Loop logic continues?
+  // No, loop condition `remaining > 0` is false.
+  // We end up returning `current`?
+  // We need to return valid end timing.
+
+  // Fix:
+  // Start AM. 1.0 days.
+  // Deduced 1.0. Remaining 0.
+  // Loop doesn't run.
+  // Return { date: current, timing: 'PM' }.
+
+  return { date: current, timing: 'PM' };
+};
+
+// Helper to add time units (respecting AM/PM boundaries)
+export const addTimeUnits = (
+  date: Date,
+  timing: 'AM' | 'PM',
+  deltaDays: number,
+  minDayUnit: number
+): { date: Date, timing: 'AM' | 'PM' } => {
+  if (minDayUnit >= 1) {
+    // Integer days only
+    return { date: addDays(date, Math.round(deltaDays)), timing };
+  }
+
+  // Fractional support (0.5 units)
+  const steps = Math.round(deltaDays / 0.5);
+  let currentDate = new Date(date);
+  let currentTiming = timing;
+
+  if (steps > 0) {
+    for (let i = 0; i < steps; i++) {
+      if (currentTiming === 'AM') {
+        currentTiming = 'PM';
+      } else {
+        currentDate = addDays(currentDate, 1);
+        currentTiming = 'AM';
+      }
+    }
+  } else if (steps < 0) {
+    for (let i = 0; i < Math.abs(steps); i++) {
+      if (currentTiming === 'PM') {
+        currentTiming = 'AM';
+      } else {
+        currentDate = addDays(currentDate, -1);
+        currentTiming = 'PM';
+      }
+    }
+  }
+
+  return { date: currentDate, timing: currentTiming };
+};
+
+// Legacy support wrapper
+export const addWorkdays = (startDate: Date, workdays: number, settings: AppSettings): Date => {
+  return calculateEndDate(startDate, workdays, settings).date;
 };

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Task, TaskOrGroup, DragState, ViewMode, AppSettings } from '../types';
-import { parseDate, diffDays, addDays, formatDate, VIEW_SETTINGS, generateTicks, isHoliday, isEvent, getPaletteColor, isWeekend, calculateWorkdays, addWorkdays } from '../utils';
+import { parseDate, diffDays, addDays, formatDate, VIEW_SETTINGS, generateTicks, isHoliday, isEvent, getPaletteColor, isWeekend, calculateWorkdays, calculateEndDate, addWorkdays, getPixelsPerDay, addTimeUnits } from '../utils';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface GanttChartProps {
@@ -55,7 +55,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
     originalEnd: new Date(),
   });
 
-  const pixelsPerDay = VIEW_SETTINGS[viewMode].pixelsPerDay;
+  const pixelsPerDay = getPixelsPerDay(viewMode, settings.minDayUnit);
 
   const ticks = useMemo(() => {
     return generateTicks(timelineStart, timelineEnd, viewMode);
@@ -94,15 +94,17 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
     }
 
     // Create snapshots for all dragging tasks
-    const initialSnapshots: Record<string, { start: Date; end: Date; progress: number; workdays: number }> = {};
+    const initialSnapshots: Record<string, { start: Date; end: Date; startTime?: 'AM' | 'PM'; endTime?: 'AM' | 'PM'; progress: number; workdays: number }> = {};
     tasksToDrag.forEach(t => {
       const s = parseDate(t.startDate);
       const e = parseDate(t.endDate);
       initialSnapshots[t.id] = {
         start: s,
         end: e,
+        startTime: t.startTime,
+        endTime: t.endTime,
         progress: t.progress,
-        workdays: calculateWorkdays(s, e, settings)
+        workdays: t.workdays ?? calculateWorkdays(s, e, settings, t.startTime, t.endTime)
       };
     });
 
@@ -113,8 +115,12 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
       initialX: e.clientX,
       originalStart: parseDate(task.startDate),
       originalEnd: parseDate(task.endDate),
+      originalStartTime: task.startTime,
+      originalEndTime: task.endTime,
       currentStart: parseDate(task.startDate),
       currentEnd: parseDate(task.endDate),
+      currentStartTime: task.startTime,
+      currentEndTime: task.endTime,
       currentProgress: task.progress,
       initialSnapshots
     });
@@ -157,35 +163,63 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
     }
 
     const deltaX = e.clientX - currentDragState.initialX;
-    const deltaDays = Math.round(deltaX / pixelsPerDay);
+    // Calculate delta in fractional days (e.g. 0.5)
+    // We don't round here because addTimeUnits handles stepping based on minDayUnit
+    const deltaDays = deltaX / pixelsPerDay;
 
     let newStart = new Date(currentDragState.originalStart);
     let newEnd = new Date(currentDragState.originalEnd);
+    let newStartTime = currentDragState.originalStartTime || 'AM';
+    let newEndTime = currentDragState.originalEndTime || 'PM';
 
     if (currentDragState.mode === 'move') {
-      newStart = addDays(currentDragState.originalStart, deltaDays);
+      const startResult = addTimeUnits(currentDragState.originalStart, currentDragState.originalStartTime || 'AM', deltaDays, settings.minDayUnit || 1);
+      newStart = startResult.date;
+      newStartTime = startResult.timing;
 
       const snapshot = currentDragState.initialSnapshots?.[currentDragState.taskId!];
       if (snapshot?.workdays) {
-        newEnd = addWorkdays(newStart, snapshot.workdays, settings);
+        // Recalculate end based on workdays from new start
+        const endResult = calculateEndDate(newStart, snapshot.workdays, settings, newStartTime);
+        newEnd = endResult.date;
+        newEndTime = endResult.timing;
       } else {
-        newEnd = addDays(currentDragState.originalEnd, deltaDays);
+        // Fallback (shouldn't happen for valid tasks)
+        // Just shift end by same amount? Or default to keeping duration constant via date math?
+        const endResult = addTimeUnits(currentDragState.originalEnd, currentDragState.originalEndTime || 'PM', deltaDays, settings.minDayUnit || 1);
+        newEnd = endResult.date;
+        newEndTime = endResult.timing;
       }
     } else if (currentDragState.mode === 'resize-left') {
-      newStart = addDays(currentDragState.originalStart, deltaDays);
+      const startResult = addTimeUnits(currentDragState.originalStart, currentDragState.originalStartTime || 'AM', deltaDays, settings.minDayUnit || 1);
+      newStart = startResult.date;
+      newStartTime = startResult.timing;
+
+      // Check boundaries? newStart <= newEnd
+      // Note: newStart/newEnd interact with times. 
+      // Simple check: formatDate(newStart) <= formatDate(newEnd)
+      // More precise: 
+      // if (newStart > newEnd) ... logic needed.
+      // For now, simple date check.
       if (newStart > newEnd) newStart = newEnd;
+
     } else if (currentDragState.mode === 'resize-right') {
-      newEnd = addDays(currentDragState.originalEnd, deltaDays);
+      const endResult = addTimeUnits(currentDragState.originalEnd, currentDragState.originalEndTime || 'PM', deltaDays, settings.minDayUnit || 1);
+      newEnd = endResult.date;
+      newEndTime = endResult.timing;
+
       if (newEnd < newStart) newEnd = newStart;
     }
 
     setDragState(prev => ({
       ...prev,
       currentStart: newStart,
-      currentEnd: newEnd
+      currentEnd: newEnd,
+      currentStartTime: newStartTime,
+      currentEndTime: newEndTime
     }));
 
-  }, [pixelsPerDay, tasks, timelineStart]);
+  }, [pixelsPerDay, tasks, timelineStart, settings]);
 
   const handleMouseUp = useCallback(() => {
     const currentDragState = dragStateRef.current;
@@ -220,9 +254,22 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
           if (currentDragState.currentStart && currentDragState.currentEnd) {
             const s = formatDate(currentDragState.currentStart);
             const e = formatDate(currentDragState.currentEnd);
-            if (s !== draggedTask.startDate || e !== draggedTask.endDate) {
+            if (s !== draggedTask.startDate || e !== draggedTask.endDate || currentDragState.currentStartTime !== draggedTask.startTime || currentDragState.currentEndTime !== draggedTask.endTime) {
               taskUpdates.startDate = s;
               taskUpdates.endDate = e;
+              taskUpdates.startTime = currentDragState.currentStartTime;
+              taskUpdates.endTime = currentDragState.currentEndTime;
+
+              if (currentDragState.mode === 'resize-left' || currentDragState.mode === 'resize-right') {
+                const newWorkdays = calculateWorkdays(
+                  currentDragState.currentStart,
+                  currentDragState.currentEnd,
+                  settings,
+                  currentDragState.currentStartTime || 'AM',
+                  currentDragState.currentEndTime || 'PM'
+                );
+                taskUpdates.workdays = newWorkdays;
+              }
               hasChanges = true;
             }
           }
@@ -238,18 +285,54 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
         } else {
           // Bulk Move
           if (currentDragState.mode === 'move' && startDiff !== 0) {
+            // Need to calculate DELTA from original to current for the MAIN task
+            // Then apply that delta to others.
+            // Wait, calculateEndDate uses workdays.
+            // If I move the main task 0.5 days.
+            // Other tasks should move 0.5 days.
+            // I should convert startDiff (days) to `units`.
+            // startDiff calculation above is just Date diff, it loses timing info.
+
+            // Recalculate precise delta
+            const deltaX = (currentDragState.initialX !== undefined) ? (dragStateRef.current.initialX - currentDragState.initialX) : 0; // Wait, currentDragState IS the ref.
+            // Actually, we have currentDragState.currentStart and originalStart.
+            // But simpler: just use the offset we calculated in MouseMove logic for the main task?
+            // No, we need to apply it to each snapshot.
+
+            // Let's use `deltaDays` from pixels.
+            // But we don't have `e.clientX` here.
+            // We can derive valid `deltaDays` from main task change.
+            // Main task changed from `originalStart` + `originalStartTime` to `currentStart` + `currentStartTime`.
+
+            // Rough approximation:
+            // days = diffDays(currentStart, originalStart).
+            // timeDiff = (currentStartTime === 'PM' ? 0.5 : 0) - (originalStartTime === 'PM' ? 0.5 : 0).
+            // totalDelta = days + timeDiff.
+
+            let totalDelta = diffDays(currentDragState.currentStart!, currentDragState.originalStart);
+            const t1 = (currentDragState.currentStartTime === 'PM' ? 0.5 : 0);
+            const t0 = (currentDragState.originalStartTime === 'PM' ? 0.5 : 0);
+            totalDelta += (t1 - t0);
+
             Object.entries(currentDragState.initialSnapshots).forEach(([tId, snapshot]) => {
               const t = tasks.find(x => x.id === tId);
               if (t) {
-                const newS = addDays(snapshot.start, startDiff);
-                const newE = snapshot.workdays
-                  ? addWorkdays(newS, snapshot.workdays, settings)
-                  : addDays(snapshot.end, startDiff);
+                // Apply totalDelta to this snapshot
+                const newStartObj = addTimeUnits(snapshot.start, snapshot.startTime || 'AM', totalDelta, settings.minDayUnit || 1);
+
+                let newEndObj;
+                if (snapshot.workdays) {
+                  newEndObj = calculateEndDate(newStartObj.date, snapshot.workdays, settings, newStartObj.timing);
+                } else {
+                  newEndObj = addTimeUnits(snapshot.end, snapshot.endTime || 'PM', totalDelta, settings.minDayUnit || 1);
+                }
 
                 updates.push({
                   ...t,
-                  startDate: formatDate(newS),
-                  endDate: formatDate(newE)
+                  startDate: formatDate(newStartObj.date),
+                  startTime: newStartObj.timing,
+                  endDate: formatDate(newEndObj.date),
+                  endTime: newEndObj.timing
                 });
               }
             });
@@ -273,11 +356,13 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
         mode: null,
         currentStart: undefined,
         currentEnd: undefined,
+        currentStartTime: undefined,
+        currentEndTime: undefined,
         currentProgress: undefined,
         initialSnapshots: undefined
       }));
     }
-  }, [tasks, onTaskUpdate, onTasksUpdate, onSelectTask]);
+  }, [tasks, onTaskUpdate, onTasksUpdate, onSelectTask, settings]);
 
   useEffect(() => {
     if (dragState.isDragging) {
@@ -453,6 +538,9 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
               // Fallback / Rename / Resize
               if (dragState.currentStart) displayStart = dragState.currentStart;
               if (dragState.currentEnd) displayEnd = dragState.currentEnd;
+              if (dragState.currentStartTime) task.startTime = dragState.currentStartTime; // Temporary override for display calculation? 
+              // Better to use a local variable for display
+              // displayStartTime = ...
               if (dragState.currentProgress !== undefined) displayProgress = dragState.currentProgress;
             }
 
@@ -461,10 +549,20 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
             const assigneeIndex = uniqueAssignees.indexOf(task.assignee || '');
             const assigneeColor = getPaletteColor(assigneeIndex, settings.assigneePalette);
 
+            const displayStartTime = (dragState.isDragging && dragState.taskId === task.id) ? dragState.currentStartTime : (task.startTime || 'AM');
+            const displayEndTime = (dragState.isDragging && dragState.taskId === task.id) ? dragState.currentEndTime : (task.endTime || 'PM');
+
+            let displayWorkdays = task.workdays;
+            if (isDraggingThis && (dragState.mode === 'resize-left' || dragState.mode === 'resize-right')) {
+              displayWorkdays = calculateWorkdays(displayStart, displayEnd, settings, displayStartTime, displayEndTime);
+            }
+
             const startDiff = diffDays(displayStart, timelineStart);
-            const duration = diffDays(displayEnd, displayStart) + 1;
+            const rawDuration = diffDays(displayEnd, displayStart) + 1;
+            const duration = Math.max(0.5, rawDuration - (displayStartTime === 'PM' ? 0.5 : 0) - (displayEndTime === 'AM' ? 0.5 : 0));
+            const offset = (displayStartTime === 'PM') ? 0.5 : 0;
             const style = {
-              left: `${startDiff * pixelsPerDay}px`,
+              left: `${(startDiff + offset) * pixelsPerDay}px`,
               width: `${duration * pixelsPerDay}px`
             };
 

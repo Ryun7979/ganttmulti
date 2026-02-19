@@ -23,6 +23,19 @@ export const GeneralSettingsTab: React.FC<{
             <p className="text-xs text-gray-500">画面左上に表示されるタイトルです。</p>
         </div>
 
+        <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">日の最小単位</label>
+            <select
+                value={settings.minDayUnit || 1}
+                onChange={(e) => onChange({ ...settings, minDayUnit: parseFloat(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+            >
+                <option value={1}>1日</option>
+                <option value={0.5}>0.5日</option>
+            </select>
+            <p className="text-xs text-gray-500">工数管理の最小単位を設定します。</p>
+        </div>
+
         <div className="space-y-3 pt-4 border-t">
             <h4 className="text-sm font-bold text-gray-700">稼働日設定</h4>
             <p className="text-xs text-gray-500 mb-1">チェックを入れた項目は「稼働日」として計算されます。</p>

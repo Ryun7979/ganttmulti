@@ -7,8 +7,8 @@ import { SnapshotDialog } from './components/SnapshotDialog';
 import { CollaborationDialog } from './components/CollaborationDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Toolbar } from './components/Toolbar';
-import { Task, ViewMode, Snapshot } from './types';
-import { getTimelineRange, generateId, formatDate, addDays, DEFAULT_SETTINGS, calculateWorkdays, parseDate } from './utils';
+import { Task, ViewMode, Snapshot, AppSettings } from './types';
+import { getTimelineRange, generateId, formatDate, addDays, DEFAULT_SETTINGS, calculateWorkdays, calculateEndDate, parseDate } from './utils';
 
 import { useCollaboration } from './hooks/useCollaboration';
 import { useGanttExport } from './hooks/useGanttExport';
@@ -96,6 +96,48 @@ const App: React.FC = () => {
     setTasks(newTasks);
   };
 
+
+
+
+  const handleSaveSettings = (newSettings: AppSettings) => {
+    const oldUnit = settings.minDayUnit || 1;
+    const newUnit = newSettings.minDayUnit || 1;
+
+    // Fractional -> Integer Mode Switching
+    if (oldUnit < 1 && newUnit >= 1) {
+      const updatedTasks = tasks.map((task) => {
+        const currentWorkdays = calculateWorkdays(
+          parseDate(task.startDate),
+          parseDate(task.endDate),
+          settings,
+          task.startTime,
+          task.endTime
+        );
+
+        // Round up to integer
+        const newWorkdays = Math.ceil(currentWorkdays);
+
+        // Recalculate End Date based on new workdays, forcing AM start (Full day)
+        const { date: newEndDate } = calculateEndDate(
+          parseDate(task.startDate),
+          newWorkdays,
+          newSettings,
+          'AM'
+        );
+
+        return {
+          ...task,
+          workdays: newWorkdays,
+          startTime: 'AM' as const,
+          endTime: 'PM' as const,
+          endDate: formatDate(newEndDate)
+        };
+      });
+      setTasks(updatedTasks);
+    }
+
+    setAppSettings(newSettings);
+  };
 
   // --- Event Handlers (Remaining logic not extracted yet) ---
 
@@ -197,7 +239,7 @@ const App: React.FC = () => {
     return displayItems
       .filter((item): item is Task => !('type' in item))
       .reduce((acc, task) => {
-        return acc + calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings);
+        return acc + calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings, task.startTime, task.endTime);
       }, 0);
   }, [displayItems, settings.customHolidays]);
 
@@ -311,7 +353,7 @@ const App: React.FC = () => {
                         <p className={`text-[10px] truncate ${isCompleted ? 'text-gray-400' : 'text-gray-500'}`}>{task.startDate} - {task.endDate}</p>
                       </div>
                       <div className={`w-12 text-right text-xs truncate ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings)}
+                        {calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings, task.startTime, task.endTime)}
                       </div>
                       <div className={`w-20 text-right text-xs truncate mr-2 cursor-pointer ${isCompleted ? 'text-gray-400' : (groupBy === 'assignee' ? 'font-bold text-blue-700' : 'text-gray-600')}`}>{task.assignee}</div>
                       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all gap-1">
@@ -360,7 +402,7 @@ const App: React.FC = () => {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
-        onSave={setAppSettings}
+        onSave={handleSaveSettings}
         onRegeneratePeerId={regenerateId}
         onExportJSON={handleExportJSON}
         onImportClick={handleImportClick}

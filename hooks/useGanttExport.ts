@@ -29,7 +29,7 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
       exportedAt: new Date().toISOString(),
       tasks: tasks.map(t => ({
         ...t,
-        workdays: t.workdays ?? calculateWorkdays(parseDate(t.startDate), parseDate(t.endDate), settings)
+        workdays: t.workdays ?? calculateWorkdays(parseDate(t.startDate), parseDate(t.endDate), settings, t.startTime, t.endTime)
       }))
     };
 

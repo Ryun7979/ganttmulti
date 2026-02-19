@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Task, AppSettings } from '../types';
 import { Button } from './Button';
 import { Modal } from './Modal';
-import { generateId, formatDate, addDays, calculateWorkdays, addWorkdays, parseDate } from '../utils';
+import { generateId, formatDate, addDays, calculateWorkdays, calculateEndDate, parseDate } from '../utils';
 import { Plus, Save } from 'lucide-react';
 
 interface TaskFormProps {
@@ -18,7 +18,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
   const [startDate, setStartDate] = useState(formatDate(new Date()));
   const [endDate, setEndDate] = useState(formatDate(addDays(new Date(), 3)));
   const [workdays, setWorkdays] = useState(0);
+  const [workdaysStr, setWorkdaysStr] = useState('0');
   const [progress, setProgress] = useState(0);
+  const [startTime, setStartTime] = useState<'AM' | 'PM'>('AM');
+  const [endTime, setEndTime] = useState<'AM' | 'PM'>('PM');
 
   // Initialize form when initialData changes
   useEffect(() => {
@@ -27,7 +30,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       setAssignee(initialData.assignee);
       setStartDate(initialData.startDate);
       setEndDate(initialData.endDate);
-      setWorkdays(calculateWorkdays(parseDate(initialData.startDate), parseDate(initialData.endDate), settings));
+      setEndDate(initialData.endDate);
+      setEndDate(initialData.endDate);
+      setStartTime(initialData.startTime || 'AM');
+      setEndTime(initialData.endTime || 'PM');
+      setEndTime(initialData.endTime || 'PM');
+      const calculatedDays = initialData.workdays ?? calculateWorkdays(parseDate(initialData.startDate), parseDate(initialData.endDate), settings, initialData.startTime || 'AM', initialData.endTime || 'PM');
+      setWorkdays(calculatedDays);
+      setWorkdaysStr(calculatedDays.toString());
       setProgress(initialData.progress);
     } else {
       // Reset for new task
@@ -38,7 +48,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       setAssignee('');
       setStartDate(initialStart);
       setEndDate(initialEnd);
-      setWorkdays(calculateWorkdays(parseDate(initialStart), parseDate(initialEnd), settings));
+      setStartDate(initialStart);
+      setEndDate(initialEnd);
+      setStartTime('AM');
+      setEndTime('PM');
+      setEndTime('PM');
+      const calculatedDays = calculateWorkdays(parseDate(initialStart), parseDate(initialEnd), settings, 'AM', 'PM');
+      setWorkdays(calculatedDays);
+      setWorkdaysStr(calculatedDays.toString());
       setProgress(0);
     }
   }, [initialData, settings]);
@@ -49,8 +66,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
     setStartDate(newStart);
     if (newStart && endDate) {
       // 開始日が変更されたら、終了日を維持して稼働日を再計算
-      const days = calculateWorkdays(parseDate(newStart), parseDate(endDate), settings);
+      const days = calculateWorkdays(parseDate(newStart), parseDate(endDate), settings, startTime, endTime);
       setWorkdays(days);
+      setWorkdaysStr(days.toString());
     }
   };
 
@@ -59,18 +77,44 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
     setEndDate(newEnd);
     if (startDate && newEnd) {
       // 終了日が変更されたら、稼働日を再計算
-      const days = calculateWorkdays(parseDate(startDate), parseDate(newEnd), settings);
+      const days = calculateWorkdays(parseDate(startDate), parseDate(newEnd), settings, startTime, endTime);
       setWorkdays(days);
+      setWorkdaysStr(days.toString());
+    }
+  };
+
+  const handleStartTimeChange = (val: 'AM' | 'PM') => {
+    setStartTime(val);
+    if (startDate && endDate) {
+      const days = calculateWorkdays(parseDate(startDate), parseDate(endDate), settings, val, endTime);
+      setWorkdays(days);
+      setWorkdaysStr(days.toString());
+    }
+  };
+
+  const handleEndTimeChange = (val: 'AM' | 'PM') => {
+    setEndTime(val);
+    if (startDate && endDate) {
+      const days = calculateWorkdays(parseDate(startDate), parseDate(endDate), settings, startTime, val);
+      setWorkdays(days);
+      setWorkdaysStr(days.toString());
     }
   };
 
   const handleWorkdaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value, 10);
-    setWorkdays(val);
-    if (!isNaN(val) && val > 0 && startDate) {
-      // 稼働日が変更されたら、終了日を再計算 (addWorkdays)
-      const newEnd = addWorkdays(parseDate(startDate), val, settings);
-      setEndDate(formatDate(newEnd));
+    const valStr = e.target.value;
+    setWorkdaysStr(valStr);
+    const val = parseFloat(valStr);
+
+    // Only update logical state if valid number
+    if (!isNaN(val) && val >= 0) {
+      setWorkdays(val);
+      if (startDate && val > 0) {
+        // 稼働日が変更されたら、終了日を再計算 (addWorkdays -> calculateEndDate)
+        const { date, timing } = calculateEndDate(parseDate(startDate), val, settings, startTime);
+        setEndDate(formatDate(date));
+        setEndTime(timing);
+      }
     }
   };
 
@@ -89,6 +133,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       assignee,
       startDate,
       endDate,
+      startTime,
+      endTime,
       workdays,
       progress: Math.min(100, Math.max(0, Number(progress))),
     });
@@ -101,6 +147,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       isOpen={true}
       onClose={onClose}
       title={isEdit ? 'タスク編集' : '新規タスク追加'}
+      maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <div>
@@ -126,37 +173,64 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">開始日</label>
-            <input
-              type="date"
-              required
-              value={startDate}
-              onChange={handleStartDateChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            />
+            <div className="flex gap-2">
+              <input
+                type="date"
+                required
+                value={startDate}
+                onChange={handleStartDateChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              />
+              {settings.minDayUnit && settings.minDayUnit < 1 && (
+                <select
+                  value={startTime}
+                  onChange={(e) => handleStartTimeChange(e.target.value as 'AM' | 'PM')}
+                  className="px-2 border border-gray-300 rounded-lg text-sm bg-white"
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              )}
+            </div>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">稼働日</label>
             <input
               type="number"
-              min="1"
+              min={settings.minDayUnit || 1}
+              step={settings.minDayUnit || 1}
               required
-              value={workdays}
+              value={workdaysStr}
               onChange={handleWorkdaysChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">終了日</label>
-            <input
-              type="date"
-              required
-              value={endDate}
-              onChange={handleEndDateChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            />
+            <div className="flex gap-2">
+              <input
+                type="date"
+                required
+                value={endDate}
+                onChange={handleEndDateChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              />
+              {settings.minDayUnit && settings.minDayUnit < 1 && (
+                <select
+                  value={endTime}
+                  onChange={(e) => handleEndTimeChange(e.target.value as 'AM' | 'PM')}
+                  className="px-2 border border-gray-300 rounded-lg text-sm bg-white"
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              )}
+            </div>
           </div>
         </div>
 
