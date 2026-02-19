@@ -307,3 +307,24 @@ export const calculateWorkdays = (start: Date, end: Date, customHolidays: string
   }
   return count;
 };
+
+// 指定された開始日から指定された稼働日数分進めた日付を計算する
+export const addWorkdays = (startDate: Date, workdays: number, customHolidays: string[] = []): Date => {
+  let current = new Date(startDate);
+  let remaining = workdays;
+
+  // まず開始日自身をチェック
+  if (!isWeekend(current) && !isHoliday(current, customHolidays)) {
+    remaining--;
+  }
+
+  // 残りの稼働日分だけ進める
+  while (remaining > 0) {
+    current.setDate(current.getDate() + 1);
+    if (!isWeekend(current) && !isHoliday(current, customHolidays)) {
+      remaining--;
+    }
+  }
+
+  return current;
+};

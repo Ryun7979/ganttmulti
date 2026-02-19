@@ -353,7 +353,7 @@ const App: React.FC = () => {
         <p className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span> 進行中 <span className="w-2 h-2 rounded-full bg-gray-500 inline-block ml-2"></span> 完了</p>
       </footer>
 
-      {isFormOpen && <TaskForm initialData={editingTask} onSave={handleSaveTask} onClose={() => { setIsFormOpen(false); setEditingTask(null); }} />}
+      {isFormOpen && <TaskForm initialData={editingTask} onSave={handleSaveTask} onClose={() => { setIsFormOpen(false); setEditingTask(null); }} customHolidays={settings.customHolidays} />}
       <SnapshotDialog isOpen={isSnapshotDialogOpen} onClose={() => setIsSnapshotDialogOpen(false)} snapshots={snapshots} onCreateSnapshot={handleCreateSnapshot} onRestoreSnapshot={(s) => setConfirmDialog({ isOpen: true, type: 'snapshot_restore', snapshot: s })} onDeleteSnapshot={(id) => { const s = snapshots.find(x => x.id === id); if (s) setConfirmDialog({ isOpen: true, type: 'snapshot_delete', snapshot: s }); }} />
       <SettingsDialog
         isOpen={isSettingsOpen}

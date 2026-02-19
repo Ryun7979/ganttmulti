@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { Task, TaskOrGroup, DragState, ViewMode, AppSettings } from '../types';
-import { parseDate, diffDays, addDays, formatDate, VIEW_SETTINGS, generateTicks, isHoliday, isEvent, getPaletteColor, isWeekend } from '../utils';
+import { parseDate, diffDays, addDays, formatDate, VIEW_SETTINGS, generateTicks, isHoliday, isEvent, getPaletteColor, isWeekend, calculateWorkdays, addWorkdays } from '../utils';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface GanttChartProps {
@@ -94,12 +94,15 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
     }
 
     // Create snapshots for all dragging tasks
-    const initialSnapshots: Record<string, { start: Date; end: Date; progress: number }> = {};
+    const initialSnapshots: Record<string, { start: Date; end: Date; progress: number; workdays: number }> = {};
     tasksToDrag.forEach(t => {
+      const s = parseDate(t.startDate);
+      const e = parseDate(t.endDate);
       initialSnapshots[t.id] = {
-        start: parseDate(t.startDate),
-        end: parseDate(t.endDate),
-        progress: t.progress
+        start: s,
+        end: e,
+        progress: t.progress,
+        workdays: calculateWorkdays(s, e, settings.customHolidays)
       };
     });
 
@@ -161,7 +164,13 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
 
     if (currentDragState.mode === 'move') {
       newStart = addDays(currentDragState.originalStart, deltaDays);
-      newEnd = addDays(currentDragState.originalEnd, deltaDays);
+
+      const snapshot = currentDragState.initialSnapshots?.[currentDragState.taskId!];
+      if (snapshot?.workdays) {
+        newEnd = addWorkdays(newStart, snapshot.workdays, settings.customHolidays);
+      } else {
+        newEnd = addDays(currentDragState.originalEnd, deltaDays);
+      }
     } else if (currentDragState.mode === 'resize-left') {
       newStart = addDays(currentDragState.originalStart, deltaDays);
       if (newStart > newEnd) newStart = newEnd;
@@ -233,7 +242,10 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
               const t = tasks.find(x => x.id === tId);
               if (t) {
                 const newS = addDays(snapshot.start, startDiff);
-                const newE = addDays(snapshot.end, startDiff);
+                const newE = snapshot.workdays
+                  ? addWorkdays(newS, snapshot.workdays, settings.customHolidays)
+                  : addDays(snapshot.end, startDiff);
+
                 updates.push({
                   ...t,
                   startDate: formatDate(newS),
@@ -385,7 +397,9 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
           // Calculate current positions based on delta
           const startDelta = diffDays(dragState.currentStart!, dragState.originalStart);
           const currentS = addDays(snap.start, startDelta);
-          const currentE = addDays(snap.end, startDelta);
+          const currentE = snap.workdays
+            ? addWorkdays(currentS, snap.workdays, settings.customHolidays)
+            : addDays(snap.end, startDelta);
 
           return (
             <div key={id} className="absolute inset-0 z-0 pointer-events-none">
@@ -431,7 +445,9 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
               const snap = dragState.initialSnapshots[task.id];
               const startDelta = diffDays(dragState.currentStart!, dragState.originalStart);
               displayStart = addDays(snap.start, startDelta);
-              displayEnd = addDays(snap.end, startDelta);
+              displayEnd = snap.workdays
+                ? addWorkdays(displayStart, snap.workdays, settings.customHolidays)
+                : addDays(snap.end, startDelta);
               // progress doesn't change on move
             } else if (isDraggingThis) {
               // Fallback / Rename / Resize

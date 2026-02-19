@@ -2,20 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Task } from '../types';
 import { Button } from './Button';
 import { Modal } from './Modal';
-import { generateId, formatDate, addDays } from '../utils';
+import { generateId, formatDate, addDays, calculateWorkdays, addWorkdays, parseDate } from '../utils';
 import { Plus, Save } from 'lucide-react';
 
 interface TaskFormProps {
   initialData?: Task | null;
   onSave: (task: Task) => void;
   onClose: () => void;
+  customHolidays: string[];
 }
 
-export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose }) => {
+export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose, customHolidays }) => {
   const [name, setName] = useState('');
   const [assignee, setAssignee] = useState('');
   const [startDate, setStartDate] = useState(formatDate(new Date()));
   const [endDate, setEndDate] = useState(formatDate(addDays(new Date(), 3)));
+  const [workdays, setWorkdays] = useState(0);
   const [progress, setProgress] = useState(0);
 
   // Initialize form when initialData changes
@@ -25,16 +27,52 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       setAssignee(initialData.assignee);
       setStartDate(initialData.startDate);
       setEndDate(initialData.endDate);
+      setWorkdays(calculateWorkdays(parseDate(initialData.startDate), parseDate(initialData.endDate), customHolidays));
       setProgress(initialData.progress);
     } else {
       // Reset for new task
+      const today = new Date();
+      const initialStart = formatDate(today);
+      const initialEnd = formatDate(addDays(today, 3));
       setName('');
       setAssignee('');
-      setStartDate(formatDate(new Date()));
-      setEndDate(formatDate(addDays(new Date(), 3)));
+      setStartDate(initialStart);
+      setEndDate(initialEnd);
+      setWorkdays(calculateWorkdays(parseDate(initialStart), parseDate(initialEnd), customHolidays));
       setProgress(0);
     }
-  }, [initialData]);
+  }, [initialData, customHolidays]);
+
+  // Handlers for bi-directional binding
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newStart = e.target.value;
+    setStartDate(newStart);
+    if (newStart && endDate) {
+      // 開始日が変更されたら、終了日を維持して稼働日を再計算
+      const days = calculateWorkdays(parseDate(newStart), parseDate(endDate), customHolidays);
+      setWorkdays(days);
+    }
+  };
+
+  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEnd = e.target.value;
+    setEndDate(newEnd);
+    if (startDate && newEnd) {
+      // 終了日が変更されたら、稼働日を再計算
+      const days = calculateWorkdays(parseDate(startDate), parseDate(newEnd), customHolidays);
+      setWorkdays(days);
+    }
+  };
+
+  const handleWorkdaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value, 10);
+    setWorkdays(val);
+    if (!isNaN(val) && val > 0 && startDate) {
+      // 稼働日が変更されたら、終了日を再計算 (addWorkdays)
+      const newEnd = addWorkdays(parseDate(startDate), val, customHolidays);
+      setEndDate(formatDate(newEnd));
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,14 +125,25 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">開始日</label>
             <input
               type="date"
               required
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={handleStartDateChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">稼働日</label>
+            <input
+              type="number"
+              min="1"
+              required
+              value={workdays}
+              onChange={handleWorkdaysChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
             />
           </div>
@@ -104,7 +153,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
               type="date"
               required
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={handleEndDateChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
             />
           </div>
