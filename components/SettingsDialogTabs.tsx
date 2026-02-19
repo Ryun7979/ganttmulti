@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppSettings, ColorSet } from '../types';
 import { Button } from './Button';
+import { DEFAULT_SETTINGS } from '../utils';
 import { RefreshCw, Trash2, Plus, AlertCircle, RotateCcw, BookOpen, CheckCircle2, Download, Upload } from 'lucide-react';
 
 // --- Sub-components for Tabs ---
@@ -34,7 +35,7 @@ export const GeneralSettingsTab: React.FC<{
                         checked={settings.workdayConfig?.saturday ?? false} // Default false if undefined
                         onChange={(e) => onChange({
                             ...settings,
-                            workdayConfig: { ...settings.workdayConfig, saturday: e.target.checked }
+                            workdayConfig: { ...(settings.workdayConfig || DEFAULT_SETTINGS.workdayConfig), saturday: e.target.checked }
                         })}
                         className="rounded text-blue-600 focus:ring-blue-500"
                     />
@@ -47,7 +48,7 @@ export const GeneralSettingsTab: React.FC<{
                         checked={settings.workdayConfig?.sunday ?? false}
                         onChange={(e) => onChange({
                             ...settings,
-                            workdayConfig: { ...settings.workdayConfig, sunday: e.target.checked }
+                            workdayConfig: { ...(settings.workdayConfig || DEFAULT_SETTINGS.workdayConfig), sunday: e.target.checked }
                         })}
                         className="rounded text-blue-600 focus:ring-blue-500"
                     />
@@ -60,7 +61,7 @@ export const GeneralSettingsTab: React.FC<{
                         checked={settings.workdayConfig?.holidays ?? false}
                         onChange={(e) => onChange({
                             ...settings,
-                            workdayConfig: { ...settings.workdayConfig, holidays: e.target.checked }
+                            workdayConfig: { ...(settings.workdayConfig || DEFAULT_SETTINGS.workdayConfig), holidays: e.target.checked }
                         })}
                         className="rounded text-blue-600 focus:ring-blue-500"
                     />
@@ -73,7 +74,7 @@ export const GeneralSettingsTab: React.FC<{
                         checked={settings.workdayConfig?.custom ?? false}
                         onChange={(e) => onChange({
                             ...settings,
-                            workdayConfig: { ...settings.workdayConfig, custom: e.target.checked }
+                            workdayConfig: { ...(settings.workdayConfig || DEFAULT_SETTINGS.workdayConfig), custom: e.target.checked }
                         })}
                         className="rounded text-blue-600 focus:ring-blue-500"
                     />

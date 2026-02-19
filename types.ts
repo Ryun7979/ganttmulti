@@ -6,6 +6,7 @@ export interface Task {
   startDate: string; // ISO Date string YYYY-MM-DD
   endDate: string;   // ISO Date string YYYY-MM-DD
   progress: number;  // 0-100
+  workdays?: number; // Optional: calculated workdays
 }
 
 export interface GroupRow {

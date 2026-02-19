@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Task, AppSettings } from '../types';
-import { formatDate, DEFAULT_SETTINGS } from '../utils';
+import { formatDate, DEFAULT_SETTINGS, calculateWorkdays, parseDate } from '../utils';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -27,9 +27,12 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
       appName: settings.appName,
       settings: settings,
       exportedAt: new Date().toISOString(),
-      tasks: tasks
+      tasks: tasks.map(t => ({
+        ...t,
+        workdays: t.workdays ?? calculateWorkdays(parseDate(t.startDate), parseDate(t.endDate), settings)
+      }))
     };
-    
+
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
     const exportFileDefaultName = `${settings.appName.replace(/\s+/g, '_')}_${formatDate(new Date())}.json`;
@@ -184,7 +187,7 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
         } else if (typeof parsedData === 'object' && parsedData !== null) {
           if (Array.isArray(parsedData.tasks)) {
             extractedTasks = parsedData.tasks;
-            
+
             // Extract Settings if present
             if (parsedData.settings) {
               extractedSettings = { ...DEFAULT_SETTINGS, ...parsedData.settings };
@@ -194,7 +197,7 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
             }
 
           } else {
-             throw new Error('データの形式が正しくありません。\n"tasks" プロパティが見つかりません。');
+            throw new Error('データの形式が正しくありません。\n"tasks" プロパティが見つかりません。');
           }
         } else {
           throw new Error('データの形式が正しくありません。\nルート要素はタスク配列またはプロジェクトオブジェクトである必要があります。');
@@ -211,7 +214,7 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
 
           // Check ID
           if (!t.id && t.id !== 0 && t.id !== '0') {
-             throw new Error(`${rowNum}行目のタスクにIDがありません。`);
+            throw new Error(`${rowNum}行目のタスクにIDがありません。`);
           }
 
           // Check Name
@@ -241,6 +244,16 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
             throw new Error(`${rowNum}行目 ${tempName}: 進捗率 (progress) は0〜100の数値である必要があります。`);
           }
 
+          // Check Workdays
+          let workdays: number | undefined;
+          if (typeof t.workdays !== 'undefined') {
+            const w = Number(t.workdays);
+            if (isNaN(w) || w < 0) {
+              throw new Error(`${rowNum}行目 ${tempName}: 稼働日 (workdays) は0以上の数値である必要があります。`);
+            }
+            workdays = w;
+          }
+
           // Sanitize
           return {
             id: String(t.id),
@@ -248,7 +261,8 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
             assignee: t.assignee ? String(t.assignee).trim() : '',
             startDate: t.startDate,
             endDate: t.endDate,
-            progress: progress
+            progress: progress,
+            workdays: workdays
           };
         });
 
@@ -265,7 +279,7 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
         }
       }
     };
-    
+
     reader.onerror = () => {
       onError('ファイルの読み込み中にエラーが発生しました。');
       if (fileInputRef.current) {

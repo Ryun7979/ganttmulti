@@ -89,6 +89,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       assignee,
       startDate,
       endDate,
+      workdays,
       progress: Math.min(100, Math.max(0, Number(progress))),
     });
   };
