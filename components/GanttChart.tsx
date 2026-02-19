@@ -11,8 +11,12 @@ interface GanttChartProps {
   settings: AppSettings;
   onTaskUpdate: (task: Task) => void;
   onEditTask: (task: Task) => void;
+  onTasksUpdate?: (tasks: Task[]) => void;
   onToggleGroup?: (groupId: string) => void;
   onScroll?: React.UIEventHandler<HTMLDivElement>;
+  selectedTaskIds?: Set<string>;
+  onToggleSelection?: (taskId: string, multi: boolean, range: boolean) => void;
+  onSelectTask?: (taskId: string) => void;
 }
 
 export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
@@ -22,9 +26,13 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
   viewMode,
   settings,
   onTaskUpdate,
+  onTasksUpdate,
   onEditTask,
   onToggleGroup,
   onScroll,
+  selectedTaskIds,
+  onToggleSelection,
+  onSelectTask,
 }, ref) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +65,44 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
     e.stopPropagation();
     if (e.button !== 0) return;
 
+    const isMulti = e.ctrlKey || e.metaKey;
+    const isRange = e.shiftKey;
+    const isSelected = selectedTaskIds?.has(task.id);
+
+    // Selection Logic
+    if (mode === 'move') {
+      if (isMulti || isRange) {
+        onToggleSelection?.(task.id, isMulti, isRange);
+        return; // Skip drag start if modifying selection
+      }
+      // Note: We do NOT select immediately if clicking an unselected task.
+      // We wait to see if it's a click or a drag.
+    }
+
+    // Determine tasks to drag
+    // If we are moving and the task is selected, we move all selected tasks.
+    // Otherwise (or if not moving), we only affect the current task.
+    let tasksToDrag: Task[] = [];
+    if (mode === 'move') {
+      if (isSelected && selectedTaskIds) {
+        tasksToDrag = tasks.filter(t => selectedTaskIds.has(t.id));
+      } else {
+        tasksToDrag = [task];
+      }
+    } else {
+      tasksToDrag = [task];
+    }
+
+    // Create snapshots for all dragging tasks
+    const initialSnapshots: Record<string, { start: Date; end: Date; progress: number }> = {};
+    tasksToDrag.forEach(t => {
+      initialSnapshots[t.id] = {
+        start: parseDate(t.startDate),
+        end: parseDate(t.endDate),
+        progress: t.progress
+      };
+    });
+
     setDragState({
       isDragging: true,
       taskId: task.id,
@@ -67,6 +113,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
       currentStart: parseDate(task.startDate),
       currentEnd: parseDate(task.endDate),
       currentProgress: task.progress,
+      initialSnapshots
     });
   };
 
@@ -134,28 +181,76 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
   const handleMouseUp = useCallback(() => {
     const currentDragState = dragStateRef.current;
     if (currentDragState.isDragging && currentDragState.taskId) {
-      const task = tasks.find(t => t.id === currentDragState.taskId);
-      if (task) {
-        let hasChanges = false;
-        const updates: Partial<Task> = {};
+      const draggedTask = tasks.find(t => t.id === currentDragState.taskId);
 
-        if (currentDragState.currentStart && currentDragState.currentEnd) {
-          const s = formatDate(currentDragState.currentStart);
-          const e = formatDate(currentDragState.currentEnd);
-          if (s !== task.startDate || e !== task.endDate) {
-            updates.startDate = s;
-            updates.endDate = e;
+      // Check if it was a simple click (interaction but no movement)
+      const hasMoved = currentDragState.initialX !== undefined && Math.abs((dragState.initialX || 0) - currentDragState.initialX) > 5;
+
+      // Calculate delta days for bulk move
+      const startDiff = (currentDragState.currentStart && currentDragState.originalStart)
+        ? diffDays(currentDragState.currentStart, currentDragState.originalStart)
+        : 0;
+
+      // Logic for Selection on Click (No Move)
+      // If we didn't move effectively (startDiff === 0), treating it as a click.
+      // We only toggle selection here if modifiers weren't used (modifiers handled in MouseDown).
+      if (startDiff === 0 && currentDragState.mode === 'move' && onSelectTask) {
+        // If it was a clean click without move, select this task.
+        onSelectTask(currentDragState.taskId);
+      }
+
+
+      if (draggedTask) {
+        const updates: Task[] = [];
+
+        // Single Task Update (Resize / Progress) OR Bulk Move fallback
+        if (!currentDragState.initialSnapshots || Object.keys(currentDragState.initialSnapshots).length <= 1) {
+          let taskUpdates: Partial<Task> = {};
+          let hasChanges = false;
+
+          if (currentDragState.currentStart && currentDragState.currentEnd) {
+            const s = formatDate(currentDragState.currentStart);
+            const e = formatDate(currentDragState.currentEnd);
+            if (s !== draggedTask.startDate || e !== draggedTask.endDate) {
+              taskUpdates.startDate = s;
+              taskUpdates.endDate = e;
+              hasChanges = true;
+            }
+          }
+
+          if (currentDragState.currentProgress !== undefined && currentDragState.currentProgress !== draggedTask.progress) {
+            taskUpdates.progress = currentDragState.currentProgress;
             hasChanges = true;
+          }
+
+          if (hasChanges) {
+            updates.push({ ...draggedTask, ...taskUpdates });
+          }
+        } else {
+          // Bulk Move
+          if (currentDragState.mode === 'move' && startDiff !== 0) {
+            Object.entries(currentDragState.initialSnapshots).forEach(([tId, snapshot]) => {
+              const t = tasks.find(x => x.id === tId);
+              if (t) {
+                const newS = addDays(snapshot.start, startDiff);
+                const newE = addDays(snapshot.end, startDiff);
+                updates.push({
+                  ...t,
+                  startDate: formatDate(newS),
+                  endDate: formatDate(newE)
+                });
+              }
+            });
           }
         }
 
-        if (currentDragState.currentProgress !== undefined && currentDragState.currentProgress !== task.progress) {
-          updates.progress = currentDragState.currentProgress;
-          hasChanges = true;
-        }
-
-        if (hasChanges) {
-          onTaskUpdate({ ...task, ...updates });
+        if (updates.length > 0) {
+          if (onTasksUpdate) {
+            onTasksUpdate(updates);
+          } else {
+            // Fallback for single update
+            onTaskUpdate(updates[0]);
+          }
         }
       }
 
@@ -166,10 +261,11 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
         mode: null,
         currentStart: undefined,
         currentEnd: undefined,
-        currentProgress: undefined
+        currentProgress: undefined,
+        initialSnapshots: undefined
       }));
     }
-  }, [tasks, onTaskUpdate]);
+  }, [tasks, onTaskUpdate, onTasksUpdate, onSelectTask]);
 
   useEffect(() => {
     if (dragState.isDragging) {
@@ -283,17 +379,24 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
         </div>
 
         {/* Timeline Drop Highlight */}
-        {dragState.isDragging && dragState.currentStart && dragState.currentEnd && dragState.mode !== 'change-progress' && (
-          <div className="absolute inset-0 z-0 pointer-events-none">
-            <div
-              className="absolute top-0 bottom-0 bg-blue-400/10 border-l border-r border-blue-400/50"
-              style={{
-                left: `${diffDays(dragState.currentStart, timelineStart) * pixelsPerDay}px`,
-                width: `${(diffDays(dragState.currentEnd, dragState.currentStart) + 1) * pixelsPerDay}px`
-              }}
-            />
-          </div>
-        )}
+        {dragState.isDragging && dragState.mode === 'move' && dragState.initialSnapshots && Object.entries(dragState.initialSnapshots).map(([id, snap]) => {
+          // Calculate current positions based on delta
+          const startDelta = diffDays(dragState.currentStart!, dragState.originalStart);
+          const currentS = addDays(snap.start, startDelta);
+          const currentE = addDays(snap.end, startDelta);
+
+          return (
+            <div key={id} className="absolute inset-0 z-0 pointer-events-none">
+              <div
+                className="absolute top-0 bottom-0 bg-blue-400/10 border-l border-r border-blue-400/50"
+                style={{
+                  left: `${diffDays(currentS, timelineStart) * pixelsPerDay}px`,
+                  width: `${(diffDays(currentE, currentS) + 1) * pixelsPerDay}px`
+                }}
+              />
+            </div>
+          );
+        })}
 
         {/* Rows */}
         <div className="relative z-10">
@@ -314,10 +417,26 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
 
             const task = item as Task;
             const isDraggingThis = dragState.isDragging && dragState.taskId === task.id;
+            const isSelected = selectedTaskIds?.has(task.id);
 
-            const displayStart = (isDraggingThis && dragState.currentStart) ? dragState.currentStart : parseDate(task.startDate);
-            const displayEnd = (isDraggingThis && dragState.currentEnd) ? dragState.currentEnd : parseDate(task.endDate);
-            const displayProgress = (isDraggingThis && dragState.currentProgress !== undefined) ? dragState.currentProgress : task.progress;
+            // Display values calculation
+            let displayStart = parseDate(task.startDate);
+            let displayEnd = parseDate(task.endDate);
+            let displayProgress = task.progress;
+
+            // If dragging, override display values for ALL moving tasks
+            if (dragState.isDragging && dragState.mode === 'move' && dragState.initialSnapshots && dragState.initialSnapshots[task.id]) {
+              const snap = dragState.initialSnapshots[task.id];
+              const startDelta = diffDays(dragState.currentStart!, dragState.originalStart);
+              displayStart = addDays(snap.start, startDelta);
+              displayEnd = addDays(snap.end, startDelta);
+              // progress doesn't change on move
+            } else if (isDraggingThis) {
+              // Fallback / Rename / Resize
+              if (dragState.currentStart) displayStart = dragState.currentStart;
+              if (dragState.currentEnd) displayEnd = dragState.currentEnd;
+              if (dragState.currentProgress !== undefined) displayProgress = dragState.currentProgress;
+            }
 
             const isCompleted = displayProgress === 100;
 
@@ -338,7 +457,10 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
                   ${isCompleted && !isDraggingThis ? 'bg-gray-100' : 'hover:bg-white/50'}
                 `}
               >
-                {isDraggingThis && dragState.mode !== 'change-progress' && (
+                {/* Phantom Box for Dragging - Only show for the primary dragged item to avoid clutter? Or show for all? 
+                    Showing for all selected tasks if they are being bulk moved. 
+                */}
+                {dragState.isDragging && dragState.mode === 'move' && dragState.initialSnapshots?.[task.id] && (
                   <div
                     className="absolute top-2 h-8 rounded-md border-2 border-dashed border-gray-300 bg-gray-50/50 z-0"
                     style={{
@@ -351,14 +473,16 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
                 <div
                   className={`absolute top-2 h-8 rounded-md shadow-sm flex items-center group-task select-none transition-none
                     ${isDraggingThis && dragState.mode === 'move' ? 'cursor-grabbing ring-2 ring-blue-400 shadow-xl z-30 opacity-95' : 'cursor-grab hover:shadow-md z-10 transition-colors duration-300'}
+                    ${isSelected ? 'ring-2 ring-blue-500 z-20 shadow-md' : ''}
                   `}
                   style={{
                     ...style,
                     backgroundColor: isCompleted ? '#f3f4f6' : assigneeColor.bg,
-                    borderColor: isCompleted ? '#9ca3af' : assigneeColor.border,
-                    borderWidth: '1px'
+                    borderColor: isSelected ? '#3b82f6' : (isCompleted ? '#9ca3af' : assigneeColor.border),
+                    borderWidth: isSelected ? '2px' : '1px'
                   }}
                   onMouseDown={(e) => handleMouseDown(e, task, 'move')}
+                  onClick={(e) => e.stopPropagation()}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
                     onEditTask(task);

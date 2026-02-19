@@ -30,6 +30,8 @@ export interface DragState {
   currentStart?: Date;
   currentEnd?: Date;
   currentProgress?: number;
+  // For bulk dragging
+  initialSnapshots?: Record<string, { start: Date; end: Date; progress: number }>;
 }
 
 export interface Snapshot {

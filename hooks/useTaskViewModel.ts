@@ -14,6 +14,84 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
   const [draggedTaskIndex, setDraggedTaskIndex] = useState<number | null>(null);
   const [draggingTasks, setDraggingTasks] = useState<Task[] | null>(null);
 
+  // Selection State
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+
+  // Selection Handlers
+  const toggleTaskSelection = (taskId: string, multi: boolean, range: boolean) => {
+    const newSelected = new Set(multi ? selectedTaskIds : []);
+
+    if (range && lastSelectedId && lastSelectedId !== taskId) {
+      // Range selection logic (simple implementation based on current list order)
+      // Note: This relies on displayItems order. Ideally we should use the current sorted/filtered list.
+      // For now, we'll try to find indices in the 'tasks' array as a fallback, 
+      // but strictly speaking distinct 'view' indices are needed for correct visual range selection.
+      // Since 'displayItems' includes groups, we need to extract tasks from it or just use 'tasks' if no grouping.
+
+      // Attempting to use 'tasks' for range selection index finding
+      const startIdx = tasks.findIndex(t => t.id === lastSelectedId);
+      const endIdx = tasks.findIndex(t => t.id === taskId);
+
+      if (startIdx !== -1 && endIdx !== -1) {
+        const low = Math.min(startIdx, endIdx);
+        const high = Math.max(startIdx, endIdx);
+        for (let i = low; i <= high; i++) {
+          newSelected.add(tasks[i].id);
+        }
+      } else {
+        newSelected.add(taskId);
+      }
+    } else {
+      // Toggle or Single select
+      if (multi) {
+        if (newSelected.has(taskId)) {
+          newSelected.delete(taskId);
+        } else {
+          newSelected.add(taskId);
+        }
+      } else {
+        // Single Click (No Modifier)
+        const wasSelected = selectedTaskIds.has(taskId);
+        newSelected.clear(); // Always clear others
+
+        if (!wasSelected) {
+          newSelected.add(taskId);
+        }
+        // If it was already selected, we leave it clear (Toggle Off)
+      }
+    }
+
+    setSelectedTaskIds(newSelected);
+    setLastSelectedId(taskId);
+  };
+
+  const selectTask = (taskId: string) => {
+    setSelectedTaskIds(prev => {
+      if (prev.has(taskId)) {
+        // Include clearing logic if already selected (Toggle Off)
+        return new Set();
+      }
+      return new Set([taskId]);
+    });
+    setLastSelectedId(taskId);
+  };
+
+  const addToSelection = (taskId: string) => {
+    setSelectedTaskIds(prev => {
+      const next = new Set(prev);
+      next.add(taskId);
+      return next;
+    });
+    setLastSelectedId(taskId);
+  };
+
+  const clearSelection = () => {
+    setSelectedTaskIds(new Set());
+    setLastSelectedId(null);
+  };
+
+
   // Group Collapsing
   const toggleGroup = (groupId: string) => {
     setCollapsedGroups(prev => {
@@ -113,6 +191,12 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
     draggingTasks,
     handleDragStart,
     handleDragOver,
-    handleDragEnd
+    handleDragEnd,
+    selectedTaskIds,
+    toggleTaskSelection,
+    selectTask,
+    addToSelection,
+    clearSelection
+
   };
 };

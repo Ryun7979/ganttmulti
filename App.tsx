@@ -38,7 +38,8 @@ const App: React.FC = () => {
 
   const {
     groupBy, setGroupBy, toggleGroup, displayItems,
-    draggedTaskIndex, draggingTasks, handleDragStart, handleDragOver, handleDragEnd
+    draggedTaskIndex, draggingTasks, handleDragStart, handleDragOver, handleDragEnd,
+    selectedTaskIds, toggleTaskSelection, selectTask, clearSelection
   } = useTaskViewModel({ tasks, setTasks });
 
   useKeyboardShortcuts({ undo, redo });
@@ -81,6 +82,19 @@ const App: React.FC = () => {
     errorMessage?: string;
     snapshot?: Snapshot;
   }>({ isOpen: false, type: 'single' });
+
+  // Update multiple tasks (for bulk drag)
+  const handleTasksUpdate = (updatedTasks: Task[]) => {
+    const newTasks = [...tasks];
+    updatedTasks.forEach(updated => {
+      const idx = newTasks.findIndex(t => t.id === updated.id);
+      if (idx !== -1) {
+        newTasks[idx] = updated;
+      }
+    });
+    setTasks(newTasks);
+  };
+
 
   // --- Event Handlers (Remaining logic not extracted yet) ---
 
@@ -245,6 +259,7 @@ const App: React.FC = () => {
                   const task = item as Task;
                   const isCompleted = task.progress === 100;
                   const isDraggedItem = draggedTaskIndex === index;
+                  const isSelected = selectedTaskIds.has(task.id);
 
                   return (
                     <div key={task.id}
@@ -257,10 +272,20 @@ const App: React.FC = () => {
                           ? 'bg-blue-50 border-2 border-dashed border-blue-400 opacity-60 shadow-inner' // Active Drag Item (Placeholder)
                           : isCompleted
                             ? 'bg-gray-100'
-                            : 'hover:bg-blue-50/50 hover:shadow-sm' // Normal Item
+                            : isSelected
+                              ? 'bg-blue-100/50 hover:bg-blue-100' // Selected
+                              : 'hover:bg-blue-50/50 hover:shadow-sm' // Normal Item
                         }
                         ${groupBy === 'assignee' && !isCompleted ? 'hover:bg-gray-50' : ''}
                       `}
+                      onClick={(e) => {
+                        // Single click -> Select
+                        // Ctrl+Click -> Toggle
+                        // Shift+Click -> Range
+                        e.stopPropagation();
+                        toggleTaskSelection(task.id, e.ctrlKey || e.metaKey, e.shiftKey);
+                      }}
+                      onDoubleClick={() => { setEditingTask(task); setIsFormOpen(true); }}
                     >
                       <div className={`w-8 flex items-center justify-center transition-colors 
                         ${groupBy === 'default'
@@ -270,11 +295,11 @@ const App: React.FC = () => {
                       `}>
                         <GripVertical size={16} />
                       </div>
-                      <div className="flex-1 min-w-0 pr-4 cursor-pointer" onClick={() => { setEditingTask(task); setIsFormOpen(true); }} title="クリックして編集">
-                        <p className={`text-sm font-medium truncate transition-colors ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900 hover:text-blue-600'}`}>{task.name}</p>
+                      <div className="flex-1 min-w-0 pr-4 cursor-pointer" title="ダブルクリックして編集">
+                        <p className={`text-sm font-medium truncate transition-colors ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{task.name}</p>
                         <p className={`text-[10px] truncate ${isCompleted ? 'text-gray-400' : 'text-gray-500'}`}>{task.startDate} - {task.endDate}</p>
                       </div>
-                      <div className={`w-20 text-right text-xs truncate mr-2 cursor-pointer hover:text-blue-600 ${isCompleted ? 'text-gray-400' : (groupBy === 'assignee' ? 'font-bold text-blue-700' : 'text-gray-600')}`} onClick={() => { setEditingTask(task); setIsFormOpen(true); }}>{task.assignee}</div>
+                      <div className={`w-20 text-right text-xs truncate mr-2 cursor-pointer ${isCompleted ? 'text-gray-400' : (groupBy === 'assignee' ? 'font-bold text-blue-700' : 'text-gray-600')}`}>{task.assignee}</div>
                       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all gap-1">
                         <button onClick={() => handleDuplicateTask(task.id)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="複製"><Copy size={14} /></button>
                         <button onClick={() => setConfirmDialog({ isOpen: true, type: 'single', taskId: task.id })} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="削除"><Trash2 size={14} /></button>
@@ -287,7 +312,7 @@ const App: React.FC = () => {
             {/* Resizer */}
             <div className={`w-1 cursor-col-resize hover:bg-blue-400 bg-gray-200 z-30 transition-colors flex-shrink-0 ${isResizingSidebar ? 'bg-blue-500' : ''}`} onMouseDown={handleResizeStart} />
             {/* Gantt Area */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-white">
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-white" onClick={clearSelection}>
               <GanttChart
                 ref={ganttChartRef}
                 onScroll={(e) => handleScroll(e, taskListRef)}
@@ -297,8 +322,12 @@ const App: React.FC = () => {
                 viewMode={viewMode}
                 settings={settings}
                 onTaskUpdate={handleUpdateTask}
+                onTasksUpdate={handleTasksUpdate}
                 onEditTask={(t) => { setEditingTask(t); setIsFormOpen(true); }}
                 onToggleGroup={toggleGroup}
+                selectedTaskIds={selectedTaskIds}
+                onToggleSelection={toggleTaskSelection}
+                onSelectTask={selectTask}
               />
             </div>
           </div>
