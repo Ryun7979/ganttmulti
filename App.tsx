@@ -243,17 +243,17 @@ const App: React.FC = () => {
           <div ref={exportContainerRef} className="flex-1 flex bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
             {/* Sidebar */}
             <div className="flex-shrink-0 flex flex-col border-r border-gray-200 bg-white z-20" style={{ width: sidebarWidth }}>
-              <div className="h-10 bg-gray-50 border-b border-gray-200 flex items-center px-2 font-semibold text-xs text-gray-500 uppercase tracking-wider flex-shrink-0">
-                <span className="w-8"></span><span className="flex-1">タスク名</span><span className="w-12 text-right">稼働日</span><span className="w-20 text-right">担当者</span><span className="w-14"></span>
-              </div>
               <div ref={taskListRef} onScroll={(e) => handleScroll(e, ganttChartRef)} className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
+                <div className="h-10 bg-gray-50 border-b border-gray-200 flex items-center px-2 font-semibold text-xs text-gray-500 uppercase tracking-wider sticky top-0 z-30">
+                  <span className="w-8"></span><span className="flex-1">タスク名</span><span className="w-12 text-right">稼働日</span><span className="w-20 text-right">担当者</span><span className="w-14"></span>
+                </div>
                 {displayItems.map((item, index) => {
                   // --- Render Group Header ---
                   if ('type' in item && item.type === 'group') {
                     return (
                       <div
                         key={item.id}
-                        className="h-8 bg-gray-50 border-b border-gray-200 flex items-center px-4 font-bold text-gray-600 text-xs sticky left-0 z-10 cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                        className="h-8 bg-gray-50 border-b border-gray-200 flex items-center px-4 font-bold text-gray-600 text-xs sticky top-10 z-20 cursor-pointer hover:bg-gray-100 transition-colors select-none"
                         onClick={() => toggleGroup(item.id)}
                       >
                         {item.isCollapsed ? (
@@ -321,6 +321,7 @@ const App: React.FC = () => {
                     </div>
                   );
                 })}
+                <div className="h-6 flex-shrink-0" aria-hidden="true" />
               </div>
             </div>
             {/* Resizer */}
