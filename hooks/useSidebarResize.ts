@@ -9,7 +9,7 @@ export const useSidebarResize = (initialWidth: number = 320) => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isResizingSidebar && sidebarResizeRef.current) {
         const delta = e.clientX - sidebarResizeRef.current.startX;
-        setSidebarWidth(Math.max(200, Math.min(800, sidebarResizeRef.current.startWidth + delta)));
+        setSidebarWidth(Math.max(200, Math.min(1200, sidebarResizeRef.current.startWidth + delta)));
       }
     };
     const handleMouseUp = () => {

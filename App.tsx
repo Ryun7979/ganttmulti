@@ -8,7 +8,8 @@ import { CollaborationDialog } from './components/CollaborationDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Toolbar } from './components/Toolbar';
 import { Task, ViewMode, Snapshot } from './types';
-import { getTimelineRange, generateId, formatDate, addDays, DEFAULT_SETTINGS } from './utils';
+import { getTimelineRange, generateId, formatDate, addDays, DEFAULT_SETTINGS, calculateWorkdays, parseDate } from './utils';
+
 import { useCollaboration } from './hooks/useCollaboration';
 import { useGanttExport } from './hooks/useGanttExport';
 import { useAppPersistence } from './hooks/useAppPersistence';
@@ -34,13 +35,13 @@ const App: React.FC = () => {
   // --- 2. Custom Hooks for UI Logic ---
   const {
     sidebarWidth, isResizingSidebar, handleResizeStart
-  } = useSidebarResize(320);
+  } = useSidebarResize(400);
 
   const {
     groupBy, setGroupBy, toggleGroup, displayItems,
     draggedTaskIndex, draggingTasks, draggingTaskIds, handleDragStart, handleDragOver, handleDragEnd,
     selectedTaskIds, toggleTaskSelection, selectTask, clearSelection
-  } = useTaskViewModel({ tasks, setTasks });
+  } = useTaskViewModel({ tasks, setTasks, settings });
 
   useKeyboardShortcuts({ undo, redo });
 
@@ -191,6 +192,15 @@ const App: React.FC = () => {
   };
   const dialogContent = getDialogContent();
 
+  // Calculate Total Workdays
+  const totalWorkdays = useMemo(() => {
+    return displayItems
+      .filter((item): item is Task => !('type' in item))
+      .reduce((acc, task) => {
+        return acc + calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings.customHolidays);
+      }, 0);
+  }, [displayItems, settings.customHolidays]);
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-800">
       <input type="file" accept=".json" ref={fileInputRef} onChange={(e) => handleFileChange(e, handleImportSuccess, handleImportError)} style={{ display: 'none' }} />
@@ -198,6 +208,7 @@ const App: React.FC = () => {
       <Toolbar
         appName={settings.appName || 'GanttMalti'}
         tasks={tasks}
+        totalWorkdays={totalWorkdays}
         isConnected={isConnected}
         viewMode={viewMode}
         groupBy={groupBy}
@@ -232,8 +243,8 @@ const App: React.FC = () => {
           <div ref={exportContainerRef} className="flex-1 flex bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
             {/* Sidebar */}
             <div className="flex-shrink-0 flex flex-col border-r border-gray-200 bg-white z-20" style={{ width: sidebarWidth }}>
-              <div className="h-10 bg-gray-50 border-b border-gray-200 flex items-center px-4 font-semibold text-xs text-gray-500 uppercase tracking-wider flex-shrink-0">
-                <span className="w-8"></span><span className="flex-1">タスク名</span><span className="w-24 text-right">担当者</span>
+              <div className="h-10 bg-gray-50 border-b border-gray-200 flex items-center px-2 font-semibold text-xs text-gray-500 uppercase tracking-wider flex-shrink-0">
+                <span className="w-8"></span><span className="flex-1">タスク名</span><span className="w-12 text-right">稼働日</span><span className="w-20 text-right">担当者</span><span className="w-14"></span>
               </div>
               <div ref={taskListRef} onScroll={(e) => handleScroll(e, ganttChartRef)} className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
                 {displayItems.map((item, index) => {
@@ -295,9 +306,12 @@ const App: React.FC = () => {
                       `}>
                         <GripVertical size={16} />
                       </div>
-                      <div className="flex-1 min-w-0 pr-4 cursor-pointer" title="ダブルクリックして編集">
+                      <div className="flex-1 min-w-0 pr-2 cursor-pointer" title="ダブルクリックして編集">
                         <p className={`text-sm font-medium truncate transition-colors ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{task.name}</p>
                         <p className={`text-[10px] truncate ${isCompleted ? 'text-gray-400' : 'text-gray-500'}`}>{task.startDate} - {task.endDate}</p>
+                      </div>
+                      <div className={`w-12 text-right text-xs truncate ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings.customHolidays)}
                       </div>
                       <div className={`w-20 text-right text-xs truncate mr-2 cursor-pointer ${isCompleted ? 'text-gray-400' : (groupBy === 'assignee' ? 'font-bold text-blue-700' : 'text-gray-600')}`}>{task.assignee}</div>
                       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all gap-1">

@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Task, TaskOrGroup } from '../types';
+import { Task, TaskOrGroup, AppSettings } from '../types';
+import { calculateWorkdays, parseDate } from '../utils';
 
 interface UseTaskViewModelProps {
   tasks: Task[];
   setTasks: (tasks: Task[]) => void;
+  settings: AppSettings;
 }
 
-export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => {
+export const useTaskViewModel = ({ tasks, setTasks, settings }: UseTaskViewModelProps) => {
   const [groupBy, setGroupBy] = useState<'default' | 'assignee'>('default');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
@@ -104,7 +106,6 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
       return next;
     });
   };
-
   // Derived Data
   const displayItems: TaskOrGroup[] = useMemo(() => {
     const source = draggingTasks || tasks;
@@ -136,11 +137,15 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
       const totalTasks = groupTasks.length;
       const incompleteTasks = groupTasks.filter(t => t.progress < 100).length;
 
+      const groupWorkdays = groupTasks.reduce((acc, task) => {
+        return acc + calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings.customHolidays);
+      }, 0);
+
       // Add Group Header
       result.push({
         id: groupId,
         type: 'group',
-        title: `${key} (${incompleteTasks}/${totalTasks})`,
+        title: `${key} (${incompleteTasks}/${totalTasks}) - ${groupWorkdays}日`,
         isCollapsed
       });
 
@@ -151,7 +156,7 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
     });
 
     return result;
-  }, [tasks, draggingTasks, groupBy, collapsedGroups]);
+  }, [tasks, draggingTasks, groupBy, collapsedGroups, settings.customHolidays]);
 
   // Reordering Handlers
   // Reordering Handlers

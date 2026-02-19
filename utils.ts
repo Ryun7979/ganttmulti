@@ -11,7 +11,7 @@ export const VIEW_SETTINGS = {
 // Helper to generate lighter tints of a color
 export const tintColor = (hex: string, factor: number): string => {
   if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) return hex;
-  
+
   let c = hex.substring(1);
   if (c.length === 3) c = c.split('').map(x => x + x).join('');
   const num = parseInt(c, 16);
@@ -29,7 +29,7 @@ export const tintColor = (hex: string, factor: number): string => {
 // Helper to generate darker shades of a color (for text generation)
 export const shadeColor = (hex: string, factor: number): string => {
   if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) return hex;
-  
+
   let c = hex.substring(1);
   if (c.length === 3) c = c.split('').map(x => x + x).join('');
   const num = parseInt(c, 16);
@@ -140,10 +140,10 @@ export const getTimelineRange = (tasks: Task[], viewMode: ViewMode) => {
   }
 
   if (viewMode === 'Week') {
-    start.setDate(start.getDate() - start.getDay()); 
+    start.setDate(start.getDate() - start.getDay());
     end = addDays(end, 14);
   } else if (viewMode === 'Month') {
-    start.setDate(1); 
+    start.setDate(1);
     end = addDays(end, 60);
   }
 
@@ -166,7 +166,7 @@ export const generateTicks = (start: Date, end: Date, viewMode: ViewMode): Date[
       current = addDays(current, 7);
     }
   } else if (viewMode === 'Month') {
-    current.setDate(1); 
+    current.setDate(1);
     while (current <= end) {
       arr.push(new Date(current));
       current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
@@ -220,17 +220,17 @@ const getHolidaysForYear = (year: number): Set<string> => {
     addDate(month, targetDate);
   };
 
-  addHappyMonday(1, 2); 
-  addHappyMonday(7, 3); 
-  addHappyMonday(9, 3); 
-  addHappyMonday(10, 2); 
+  addHappyMonday(1, 2);
+  addHappyMonday(7, 3);
+  addHappyMonday(9, 3);
+  addHappyMonday(10, 2);
 
   const sortedBaseHolidays = Array.from(holidays).sort();
   const substituteHolidays = new Set<string>();
 
   sortedBaseHolidays.forEach(dateStr => {
     const d = new Date(dateStr);
-    if (d.getDay() === 0) { 
+    if (d.getDay() === 0) {
       let nextDay = new Date(d);
       nextDay.setDate(nextDay.getDate() + 1);
       while (holidays.has(formatDate(nextDay))) {
@@ -245,8 +245,8 @@ const getHolidaysForYear = (year: number): Set<string> => {
 
   const firstDaySep = new Date(year, 8, 1).getDay();
   const firstMondaySep = 1 + (1 - firstDaySep + 7) % 7;
-  const respectAgedDay = firstMondaySep + 14; 
-  
+  const respectAgedDay = firstMondaySep + 14;
+
   const autumnDay = getAutumnalEquinoxDay(year);
 
   if (autumnDay - respectAgedDay === 2) {
@@ -267,7 +267,7 @@ export const isHoliday = (date: Date, customHolidays: string[] = []): boolean =>
   const dateStr = formatDate(date);
   // Check custom holidays first
   if (customHolidays.includes(dateStr)) return true;
-  
+
   // Check standard Japanese holidays
   const year = date.getFullYear();
   const holidays = getHolidaysForYear(year);
@@ -288,3 +288,22 @@ export const isWeekend = (date: Date): boolean => {
 
 // For backward compatibility (deprecated use)
 export const isJapaneseHoliday = (date: Date) => isHoliday(date);
+
+// Helper to calculate workdays between two dates (inclusive)
+export const calculateWorkdays = (start: Date, end: Date, customHolidays: string[] = []): number => {
+  let count = 0;
+  let current = new Date(start);
+  const endDate = new Date(end);
+
+  // Reset time part to ensure accurate day comparison
+  current.setHours(0, 0, 0, 0);
+  endDate.setHours(0, 0, 0, 0);
+
+  while (current <= endDate) {
+    if (!isWeekend(current) && !isHoliday(current, customHolidays)) {
+      count++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return count;
+};
