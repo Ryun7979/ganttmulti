@@ -138,7 +138,7 @@ export const useTaskViewModel = ({ tasks, setTasks, settings }: UseTaskViewModel
       const incompleteTasks = groupTasks.filter(t => t.progress < 100).length;
 
       const groupWorkdays = groupTasks.reduce((acc, task) => {
-        return acc + calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings.customHolidays);
+        return acc + calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings);
       }, 0);
 
       // Add Group Header
@@ -156,7 +156,7 @@ export const useTaskViewModel = ({ tasks, setTasks, settings }: UseTaskViewModel
     });
 
     return result;
-  }, [tasks, draggingTasks, groupBy, collapsedGroups, settings.customHolidays]);
+  }, [tasks, draggingTasks, groupBy, collapsedGroups, settings]);
 
   // Reordering Handlers
   // Reordering Handlers
