@@ -38,7 +38,7 @@ const App: React.FC = () => {
 
   const {
     groupBy, setGroupBy, toggleGroup, displayItems,
-    draggedTaskIndex, draggingTasks, handleDragStart, handleDragOver, handleDragEnd,
+    draggedTaskIndex, draggingTasks, draggingTaskIds, handleDragStart, handleDragOver, handleDragEnd,
     selectedTaskIds, toggleTaskSelection, selectTask, clearSelection
   } = useTaskViewModel({ tasks, setTasks });
 
@@ -258,7 +258,7 @@ const App: React.FC = () => {
                   // --- Render Task Item ---
                   const task = item as Task;
                   const isCompleted = task.progress === 100;
-                  const isDraggedItem = draggedTaskIndex === index;
+                  const isDraggedItem = draggingTaskIds ? draggingTaskIds.has(task.id) : draggedTaskIndex === index;
                   const isSelected = selectedTaskIds.has(task.id);
 
                   return (

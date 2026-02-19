@@ -154,9 +154,26 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
   }, [tasks, draggingTasks, groupBy, collapsedGroups]);
 
   // Reordering Handlers
+  // Reordering Handlers
+  const [draggingTaskIds, setDraggingTaskIds] = useState<Set<string> | null>(null);
+
   const handleDragStart = (e: React.DragEvent, index: number) => {
     if (groupBy !== 'default') { e.preventDefault(); return; }
     e.dataTransfer.effectAllowed = "move";
+
+    const task = tasks[index];
+    let newDraggingIds = new Set<string>();
+
+    // If dragging a selected task, drag all selected tasks
+    // If dragging an unselected task, drag only that task (and keep selection as is? or update selection?)
+    // Decision: If unselected, drag just that one.
+    if (selectedTaskIds.has(task.id)) {
+      newDraggingIds = new Set(selectedTaskIds);
+    } else {
+      newDraggingIds = new Set([task.id]);
+    }
+
+    setDraggingTaskIds(newDraggingIds);
     setDraggingTasks([...tasks]);
     setTimeout(() => setDraggedTaskIndex(index), 0);
   };
@@ -165,19 +182,52 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
 
-    if (groupBy !== 'default' || draggedTaskIndex === null || draggedTaskIndex === index) return;
+    if (groupBy !== 'default' || draggedTaskIndex === null || !draggingTasks || !draggingTaskIds) return;
 
-    const newTasks = [...(draggingTasks || tasks)];
-    const [item] = newTasks.splice(draggedTaskIndex, 1);
-    newTasks.splice(index, 0, item);
+    const targetItem = draggingTasks[index];
+    // If hovering over one of the dragged items, do nothing
+    if (draggingTaskIds.has(targetItem.id)) return;
 
-    setDraggingTasks(newTasks);
-    setDraggedTaskIndex(index);
+    // Filter out dragged items from the list to find the "gap"
+    const newItems = draggingTasks.filter(t => !draggingTaskIds.has(t.id));
+
+    // Find where the target item is in the new list (without dragged items)
+    const targetIndexInNew = newItems.findIndex(t => t.id === targetItem.id);
+    if (targetIndexInNew === -1) return; // Should not happen
+
+    // Identify items to move (in their original relative order? or current order in draggingTasks?)
+    // Using draggingTasks ensures we keep them together if they were already grouped, 
+    // but initially they might be scattered. 
+    // If scattered, we probably want to group them.
+    // Let's filter from draggingTasks to keep their *current* order if they are already moving?
+    // Actually, on first dragOver they might be scattered.
+    // If we use draggingTasks.filter, we get them in order of appearance in the list.
+    const itemsToMove = draggingTasks.filter(t => draggingTaskIds.has(t.id));
+
+    // Insert items at the target index
+    // Using splice to insert *before* the target item?
+    // If moving down, targetIndexInNew is correctly pointing to the item we want to be *after* (visually)?
+    // Standard reorder logic:
+    // If dragging index < target index, insert after?
+    // But since we removed items, indices shift.
+    // `targetIndexInNew` is the index of the item we are hovering over, in the *compacted* list.
+    // We want to insert *before* this item usually.
+    newItems.splice(targetIndexInNew, 0, ...itemsToMove);
+
+    setDraggingTasks(newItems);
+
+    // Update draggedTaskIndex to point to the new location of the primary dragged item?
+    // We need it to keep the "ghost" effectively positioned?
+    // Actually, simply finding the new index of the *first* moved item is enough to keep `draggedTaskIndex` valid-ish
+    // so that we don't clear state inadvertently.
+    const newPrimaryIndex = newItems.findIndex(t => t.id === itemsToMove[0].id);
+    setDraggedTaskIndex(newPrimaryIndex);
   };
 
   const handleDragEnd = () => {
     if (draggingTasks) setTasks(draggingTasks);
     setDraggingTasks(null);
+    setDraggingTaskIds(null);
     setDraggedTaskIndex(null);
   };
 
@@ -187,8 +237,9 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
     collapsedGroups,
     toggleGroup,
     displayItems,
-    draggedTaskIndex,
+    draggedTaskIndex, // Legacy single index, mostly for compatibility or if needed
     draggingTasks,
+    draggingTaskIds, // Exported for UI
     handleDragStart,
     handleDragOver,
     handleDragEnd,
@@ -197,6 +248,5 @@ export const useTaskViewModel = ({ tasks, setTasks }: UseTaskViewModelProps) => 
     selectTask,
     addToSelection,
     clearSelection
-
   };
 };
