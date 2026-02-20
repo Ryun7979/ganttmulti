@@ -340,6 +340,7 @@ export const ManualTab: React.FC = () => (
                 <h4 className="font-bold text-gray-900 mb-2">1. 基本操作</h4>
                 <ul className="list-disc pl-5 space-y-1 text-sm">
                     <li><span className="font-semibold">タスクの追加:</span> 画面右下の「新規」ボタン、または「最初のタスクを作成」から行います。</li>
+                    <li><span className="font-semibold">マイルストーン:</span> 新規作成・編集時に「マイルストーン」を選択すると、期間を持たないポイント（〆切など）を設定できます。</li>
                     <li><span className="font-semibold">タスクの編集:</span> ガントチャート上のバーやリストをダブルクリックします。</li>
                     <li><span className="font-semibold">タスクの移動:</span> バーをドラッグして日程を変更できます。</li>
                     <li><span className="font-semibold">期間変更:</span> バーの両端をドラッグして期間を伸縮します。</li>
@@ -348,25 +349,34 @@ export const ManualTab: React.FC = () => (
             </section>
 
             <section className="mb-6">
-                <h4 className="font-bold text-gray-900 mb-2">2. 表示・整理</h4>
+                <h4 className="font-bold text-gray-900 mb-2">2. 高度な操作</h4>
+                <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li><span className="font-semibold">複数選択:</span> Ctrlキー（MacはCmdキー）を押しながらクリックで複数選択、Shiftキーで範囲選択が可能です。</li>
+                    <li><span className="font-semibold">一括移動:</span> 複数選択した状態でドラッグすると、選択したすべてのタスクを相対位置を保ったまま移動できます。</li>
+                    <li><span className="font-semibold">リスト並び替え:</span> 「リスト順」モード時、左端のグリップアイコンをドラッグしてタスクの順序を変更できます。</li>
+                </ul>
+            </section>
+
+            <section className="mb-6">
+                <h4 className="font-bold text-gray-900 mb-2">3. 表示・整理</h4>
                 <ul className="list-disc pl-5 space-y-1 text-sm">
                     <li><span className="font-semibold">表示モード:</span> ヘッダーの「日・週・月」で切り替えます。</li>
-                    <li><span className="font-semibold">リスト順 (自由配置):</span> タスクをドラッグ＆ドロップで並び替えできます。</li>
-                    <li><span className="font-semibold">担当者順:</span> 担当者ごとに自動でグループ化します。</li>
+                    <li><span className="font-semibold">担当者順:</span> 担当者ごとに自動でグループ化します（このモードでは並び替え不可）。</li>
                 </ul>
             </section>
 
             <section className="mb-6">
-                <h4 className="font-bold text-gray-900 mb-2">3. データ管理</h4>
+                <h4 className="font-bold text-gray-900 mb-2">4. データ管理・設定</h4>
                 <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li><span className="font-semibold">稼働日設定:</span> 「一般」タブで、土日・祝日・カスタム休日を稼働日とするか（工数計算に含めるか）を設定できます。</li>
                     <li><span className="font-semibold">Undo/Redo:</span> 矢印ボタンで操作を元に戻せます。</li>
                     <li><span className="font-semibold">一時保存:</span> 「一時保存」ボタンでスナップショットを作成し、後で復元できます。</li>
-                    <li><span className="font-semibold">インポート/エクスポート:</span> JSON形式でバックアップ、PDFで画像保存が可能です。</li>
+                    <li><span className="font-semibold">インポート/エクスポート:</span> JSON形式でバックアップ、PDF形式で画像保存が可能です。</li>
                 </ul>
             </section>
 
             <section className="mb-6">
-                <h4 className="font-bold text-gray-900 mb-2">4. 同時編集 (P2P)</h4>
+                <h4 className="font-bold text-gray-900 mb-2">5. 同時編集 (P2P)</h4>
                 <div className="bg-blue-50 p-3 rounded text-sm text-blue-800">
                     <p className="mb-1 font-semibold">サーバー不要のリアルタイム編集</p>
                     <ol className="list-decimal pl-5 space-y-1">
@@ -375,15 +385,6 @@ export const ManualTab: React.FC = () => (
                         <li>接続が確立すると、操作が即座に同期されます</li>
                     </ol>
                 </div>
-            </section>
-
-            <section>
-                <h4 className="font-bold text-gray-900 mb-2">5. 設定</h4>
-                <ul className="list-disc pl-5 space-y-1 text-sm">
-                    <li><span className="font-semibold">アプリ名:</span> タイトルを変更できます。</li>
-                    <li><span className="font-semibold">カラーパレット:</span> 担当者の色分け設定。</li>
-                    <li><span className="font-semibold">休日・イベント:</span> 独自の休日やイベント日を追加し、色をカスタマイズできます。</li>
-                </ul>
             </section>
         </div>
     </div>
