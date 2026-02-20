@@ -56,15 +56,14 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
       const totalHeight = Math.max(sidebarHeight, ganttHeight);
       const totalWidth = sidebarWidth + ganttChartEl.scrollWidth;
 
-      const canvas = await html2canvas(exportContainerRef.current, {
-        scale: 3,
+      const commonOptions = {
         useCORS: true,
         logging: false,
         width: totalWidth,
         height: totalHeight,
         windowWidth: totalWidth,
         windowHeight: totalHeight,
-        onclone: (clonedDoc, element) => {
+        onclone: (clonedDoc: Document, element: HTMLElement) => {
           const el = element as HTMLElement;
           el.style.overflow = 'visible';
           el.style.width = `${totalWidth}px`;
@@ -79,9 +78,9 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
               taskListClone.style.height = 'auto';
 
               // Adjust font sizes
-              // Adjust font sizes
               taskListClone.querySelectorAll('p.text-sm').forEach((node) => {
                 const p = node as HTMLElement;
+                if (!p) return;
                 p.style.fontSize = '12px';
                 p.style.lineHeight = '1.5';
                 p.style.height = '20px';
@@ -92,6 +91,7 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
               });
               taskListClone.querySelectorAll('p[class*="text-[10px]"]').forEach((node) => {
                 const p = node as HTMLElement;
+                if (!p) return;
                 p.style.fontSize = '9px';
                 p.style.lineHeight = '1.4';
                 p.style.paddingBottom = '2px';
@@ -100,6 +100,7 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
               // Target w-12 (Workdays) and w-20 (Assignee)
               taskListClone.querySelectorAll('div.w-12, div.w-20').forEach((node) => {
                 const div = node as HTMLElement;
+                if (!div) return;
                 div.style.fontSize = '11px';
                 div.style.display = 'flex';
                 div.style.alignItems = 'center';
@@ -110,6 +111,7 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
             }
           }
 
+          // Safety check for ganttWrapper (index 2 might not exist if layout changes)
           const ganttWrapper = el.children[2] as HTMLElement;
           if (ganttWrapper) {
             ganttWrapper.style.overflow = 'visible';
@@ -121,12 +123,14 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
 
               // Hide checkmarks
               ganttScrollClone.querySelectorAll('svg.lucide-check').forEach((node) => {
-                (node as HTMLElement).style.display = 'none';
+                const el = node as HTMLElement;
+                if (el) el.style.display = 'none';
               });
 
-              // Adjust Labels
+              // Adjust Labels (Tasks)
               ganttScrollClone.querySelectorAll('span.text-xs.font-semibold').forEach((node) => {
                 const span = node as HTMLElement;
+                if (!span) return;
                 span.style.fontSize = '9px';
                 span.style.lineHeight = '1';
                 span.style.transform = 'translateY(-1.5px)';
@@ -135,23 +139,67 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
                 span.style.alignItems = 'center';
                 span.style.whiteSpace = 'nowrap';
               });
+
+              // Adjust Labels (Milestones) - Targeting the specific style of milestone labels
+              const milestoneLabels = ganttScrollClone.querySelectorAll('.absolute.left-full.ml-1.text-xs');
+              milestoneLabels.forEach((node) => {
+                const div = node as HTMLElement;
+                if (!div) return;
+                div.style.fontSize = '9px';
+                // Ensure it's visible and doesn't get cut off
+                div.style.whiteSpace = 'nowrap';
+                div.style.overflow = 'visible';
+              });
             }
           }
         }
-      });
+      };
 
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: totalWidth > totalHeight ? 'l' : 'p',
-        unit: 'px',
-        format: [totalWidth, totalHeight]
-      });
+      // Recursive function to attempt export with decreasing scale
+      const attemptExport = async (currentScale: number) => {
+        try {
+          const canvas = await html2canvas(exportContainerRef.current!, {
+            ...commonOptions,
+            scale: currentScale
+          });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, totalWidth, totalHeight);
-      pdf.save(`${settings.appName.replace(/\s+/g, '_')}_export_${formatDate(new Date())}.pdf`);
-    } catch (err) {
+          // toDataURL can fail if image is too big
+          const imgData = canvas.toDataURL('image/png');
+
+          const pdfInstance = new jsPDF({
+            orientation: totalWidth > totalHeight ? 'l' : 'p',
+            unit: 'px',
+            format: [totalWidth, totalHeight]
+          });
+
+          pdfInstance.addImage(imgData, 'PNG', 0, 0, totalWidth, totalHeight);
+          pdfInstance.save(`${settings.appName.replace(/\s+/g, '_')}_export_${formatDate(new Date())}.pdf`);
+
+        } catch (err: any) {
+          console.warn(`Export failed at scale ${currentScale}:`, err);
+          if (currentScale > 1) {
+            // Try lower scale
+            // 2 -> 1.5 -> 1
+            if (currentScale === 2) {
+              await attemptExport(1.5);
+            } else if (currentScale === 1.5) {
+              await attemptExport(1);
+            } else {
+              throw err; // Give up if 1 fails
+            }
+          } else {
+            throw err;
+          }
+        }
+      };
+
+      // Start with scale 2 (was 3, and caused invalid string length error)
+      await attemptExport(2);
+
+    } catch (err: any) {
       console.error('Export PDF Error:', err);
-      alert('PDFの生成に失敗しました。');
+      // Show more detailed error message to the user
+      alert(`PDFの生成に失敗しました。\nエラー詳細: ${err.message || err}`);
     }
   };
 
