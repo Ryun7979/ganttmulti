@@ -8,11 +8,17 @@ export const VIEW_SETTINGS = {
   Month: { pixelsPerDay: 4, label: '月' }, // 1 month approx 120px
 };
 
-export const getPixelsPerDay = (viewMode: ViewMode, minDayUnit: number = 1): number => {
-  if (viewMode === 'Day' && minDayUnit < 1) {
-    return 60; // Expanded width for fractional days
+export const getPixelsPerDay = (viewMode: ViewMode, settings: AppSettings): number => {
+  const cellWidths = settings.cellWidths || DEFAULT_SETTINGS.cellWidths!;
+
+  if (viewMode === 'Day') {
+    return cellWidths.Day;
+  } else if (viewMode === 'Week') {
+    return cellWidths.Week / 7;
+  } else if (viewMode === 'Month') {
+    return cellWidths.Month / 30;
   }
-  return VIEW_SETTINGS[viewMode].pixelsPerDay;
+  return 38;
 };
 
 // Helper to generate lighter tints of a color
@@ -104,6 +110,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
     sunday: false,   // Default: Exclude (Off)
     holidays: false, // Default: Exclude (Off)
     custom: false    // Default: Exclude (Off) - Custom holidays are holidays
+  },
+  rowHeight: 48,
+  cellWidths: {
+    Day: 38,
+    Week: 120,
+    Month: 200
   }
 };
 

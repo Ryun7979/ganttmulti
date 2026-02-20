@@ -100,4 +100,10 @@ export interface AppSettings {
   workdayConfig: WorkdayConfig;
   minDayUnit?: number; // 1 | 0.5 | 0.25 (default: 1)
   fontSize?: 'small' | 'medium' | 'large'; // Default: 'small'
+  rowHeight?: number; // Default: 48
+  cellWidths?: {
+    Day: number;   // Default: 38
+    Week: number;  // Default: 84
+    Month: number; // Default: 120
+  };
 }

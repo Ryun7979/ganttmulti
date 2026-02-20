@@ -39,7 +39,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
     return Array.from(s).sort();
   }, [tasks]);
 
-  const pixelsPerDay = getPixelsPerDay(viewMode, settings.minDayUnit);
+  const pixelsPerDay = getPixelsPerDay(viewMode, settings);
 
   const ticks = useMemo(() => {
     return generateTicks(timelineStart, timelineEnd, viewMode);

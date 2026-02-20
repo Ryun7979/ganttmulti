@@ -47,6 +47,10 @@ export const TaskItem = React.memo(({
     const isCompleted = displayProgress === 100;
     const isMilestone = task.type === 'milestone';
 
+    const rowHeight = settings.rowHeight || 48;
+    const barHeight = Math.max(20, rowHeight - 16);
+    const barTop = (rowHeight - barHeight) / 2;
+
     const startDiff = diffDays(displayStart, timelineStart);
     if (isMilestone) {
         const style = {
@@ -56,7 +60,10 @@ export const TaskItem = React.memo(({
         };
 
         return (
-            <div className={`h-12 border-b border-gray-100 relative group transition-colors hover:bg-white/50`}>
+            <div
+                className={`border-b border-gray-100 relative group transition-colors hover:bg-white/50`}
+                style={{ height: `${rowHeight}px` }}
+            >
                 <div
                     className={`absolute z-10 cursor-grab hover:scale-110 transition-transform ${isDraggingThis ? 'cursor-grabbing scale-125' : ''}`}
                     style={style}
@@ -91,14 +98,19 @@ export const TaskItem = React.memo(({
     };
 
     return (
-        <div className={`h-12 border-b border-gray-100 relative group transition-colors ${isCompleted && !isDraggingThis ? 'bg-gray-100' : 'hover:bg-white/50'}`}>
+        <div
+            className={`border-b border-gray-100 relative group transition-colors ${isCompleted && !isDraggingThis ? 'bg-gray-100' : 'hover:bg-white/50'}`}
+            style={{ height: `${rowHeight}px` }}
+        >
             <div
-                className={`absolute top-2 h-8 rounded-md shadow-sm flex items-center group-task select-none transition-none
+                className={`absolute rounded-md shadow-sm flex items-center group-task select-none transition-none
           ${isDraggingThis && dragMode === 'move' ? 'cursor-grabbing ring-2 ring-blue-400 shadow-xl z-30 opacity-95' : 'cursor-grab hover:shadow-md z-10 transition-colors duration-300'}
           ${isSelected ? 'ring-2 ring-blue-500 z-20 shadow-md' : ''}
         `}
                 style={{
                     ...style,
+                    top: `${barTop}px`,
+                    height: `${barHeight}px`,
                     backgroundColor: isCompleted ? '#f3f4f6' : assigneeColor.bg,
                     borderColor: isSelected ? '#3b82f6' : (isCompleted ? '#9ca3af' : assigneeColor.border),
                     borderWidth: isSelected ? '2px' : '1px'

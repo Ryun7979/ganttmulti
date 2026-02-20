@@ -378,7 +378,7 @@ const App: React.FC = () => {
                       onDragStart={(e) => handleDragStart(e, index)}
                       onDragOver={(e) => handleDragOver(e, index)}
                       onDragEnd={handleDragEnd}
-                      className={`h-12 flex items-center px-2 border-b border-gray-100 transition-all duration-200 group relative
+                      className={`flex items-center px-2 border-b border-gray-100 transition-all duration-200 group relative
                         ${isDraggedItem
                           ? 'bg-blue-50 border-2 border-dashed border-blue-400 opacity-60 shadow-inner' // Active Drag Item (Placeholder)
                           : isCompleted
@@ -389,6 +389,7 @@ const App: React.FC = () => {
                         }
                         ${groupBy === 'assignee' && !isCompleted ? 'hover:bg-gray-50' : ''}
                       `}
+                      style={{ height: `${settings.rowHeight || 48}px` }}
                       onClick={(e) => {
                         // Single click -> Select
                         // Ctrl+Click -> Toggle

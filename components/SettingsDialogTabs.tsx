@@ -33,7 +33,10 @@ export const GeneralSettingsTab: React.FC<{
                 <option value={1}>1日</option>
                 <option value={0.5}>0.5日</option>
             </select>
-            <p className="text-xs text-gray-500">工数管理の最小単位を設定します。</p>
+            <p className="text-xs text-gray-500">
+                工数管理の最小単位を設定します。<br />
+                <span className="text-amber-600">※ 1日より小さい設定にする場合は「セルの幅（日）」を広く設定してください。</span>
+            </p>
         </div>
 
         <div className="space-y-2">
@@ -48,6 +51,96 @@ export const GeneralSettingsTab: React.FC<{
                 <option value="large">大</option>
             </select>
             <p className="text-xs text-gray-500">画面全体の文字サイズを調整します。</p>
+        </div>
+
+
+        <div className="space-y-4 pt-4 border-t">
+            <h4 className="text-sm font-bold text-gray-700">表示設定</h4>
+            <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <label className="text-sm font-medium text-gray-700">セルの高さ</label>
+                        <span className="text-xs font-mono text-gray-500">{settings.rowHeight || 48}px</span>
+                    </div>
+                    <input
+                        type="range"
+                        min={32}
+                        max={70}
+                        value={settings.rowHeight || 48}
+                        onChange={(e) => {
+                            const val = parseInt(e.target.value) || 48;
+                            onChange({ ...settings, rowHeight: val });
+                        }}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <label className="text-sm font-medium text-gray-700">セルの幅 (日)</label>
+                        <span className="text-xs font-mono text-gray-500">{settings.cellWidths?.Day || 38}px</span>
+                    </div>
+                    <input
+                        type="range"
+                        min={20}
+                        max={150}
+                        value={settings.cellWidths?.Day || 38}
+                        onChange={(e) => {
+                            const val = parseInt(e.target.value) || 38;
+                            const current = settings.cellWidths || DEFAULT_SETTINGS.cellWidths;
+                            onChange({
+                                ...settings,
+                                cellWidths: { ...current!, Day: val }
+                            });
+                        }}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <label className="text-sm font-medium text-gray-700">セルの幅 (週)</label>
+                        <span className="text-xs font-mono text-gray-500">{settings.cellWidths?.Week || 120}px</span>
+                    </div>
+                    <input
+                        type="range"
+                        min={60}
+                        max={200}
+                        value={settings.cellWidths?.Week || 120}
+                        onChange={(e) => {
+                            const val = parseInt(e.target.value) || 120;
+                            const current = settings.cellWidths || DEFAULT_SETTINGS.cellWidths;
+                            onChange({
+                                ...settings,
+                                cellWidths: { ...current!, Week: val }
+                            });
+                        }}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <label className="text-sm font-medium text-gray-700">セルの幅 (月)</label>
+                        <span className="text-xs font-mono text-gray-500">{settings.cellWidths?.Month || 200}px</span>
+                    </div>
+                    <input
+                        type="range"
+                        min={90}
+                        max={350}
+                        value={settings.cellWidths?.Month || 200}
+                        onChange={(e) => {
+                            const val = parseInt(e.target.value) || 200;
+                            const current = settings.cellWidths || DEFAULT_SETTINGS.cellWidths;
+                            onChange({
+                                ...settings,
+                                cellWidths: { ...current!, Month: val }
+                            });
+                        }}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+                </div>
+            </div>
+            <p className="text-xs text-gray-500">
+                スライダーで各表示モードのセル幅と行の高さを調整できます。
+            </p>
         </div>
 
         <div className="space-y-3 pt-4 border-t">
