@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { Task, TaskOrGroup, ViewMode, AppSettings } from '../types';
-import { parseDate, diffDays, addDays, generateTicks, getPaletteColor, addWorkdays, getPixelsPerDay } from '../utils';
+import { parseDate, diffDays, addDays, generateTicks, getPaletteColor, addWorkdays, getPixelsPerDay, addTimeUnits, calculateEndDate } from '../utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { GanttHeader } from './gantt/GanttHeader';
 import { GanttBackground } from './gantt/GanttBackground';
@@ -75,18 +75,26 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
 
         {/* Timeline Drop Highlight (Bulk Move) */}
         {dragState.isDragging && dragState.mode === 'move' && dragState.initialSnapshots && Object.entries(dragState.initialSnapshots).map(([id, snap]: [string, any]) => {
-          const startDelta = diffDays(dragState.currentStart!, dragState.originalStart);
-          const currentS = addDays(snap.start, startDelta);
-          const currentE = snap.workdays
-            ? addWorkdays(currentS, snap.workdays, settings)
-            : addDays(snap.end, startDelta);
+          const t1_h = (dragState.currentStartTime === 'PM' ? 0.5 : 0);
+          const t0_h = (dragState.originalStartTime === 'PM' ? 0.5 : 0);
+          let totalDeltaH = diffDays(dragState.currentStart!, dragState.originalStart);
+          totalDeltaH += (t1_h - t0_h);
+
+          const startResult = addTimeUnits(snap.start, snap.startTime || 'AM', totalDeltaH, settings.minDayUnit || 1);
+          const currentS = startResult.date;
+          let endResult;
+          if (snap.workdays) {
+            endResult = calculateEndDate(currentS, snap.workdays, settings, startResult.timing);
+          } else {
+            endResult = addTimeUnits(snap.end, snap.endTime || 'PM', totalDeltaH, settings.minDayUnit || 1);
+          }
           return (
             <div key={`highlight-${id}`} className="absolute inset-0 z-0 pointer-events-none">
               <div
                 className="absolute top-0 bottom-0 bg-blue-400/10 border-l border-r border-blue-400/50"
                 style={{
-                  left: `${diffDays(currentS, timelineStart) * pixelsPerDay}px`,
-                  width: `${(diffDays(currentE, currentS) + 1) * pixelsPerDay}px`
+                  left: `${(diffDays(currentS, timelineStart) + (startResult.timing === 'PM' ? 0.5 : 0)) * pixelsPerDay}px`,
+                  width: `${(diffDays(endResult.date, currentS) + (endResult.timing === 'PM' ? 1.0 : 0.5) - (startResult.timing === 'PM' ? 0.5 : 0)) * pixelsPerDay}px`
                 }}
               />
             </div>
@@ -115,10 +123,24 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
             let dragValues = undefined;
             if (dragState.isDragging && dragState.mode === 'move' && dragState.initialSnapshots?.[task.id]) {
               const snap = dragState.initialSnapshots[task.id];
-              const startDelta = diffDays(dragState.currentStart!, dragState.originalStart);
-              const dS = addDays(snap.start, startDelta);
-              const dE = snap.workdays ? addWorkdays(dS, snap.workdays, settings) : addDays(snap.end, startDelta);
-              dragValues = { start: dS, end: dE };
+              let totalDelta = diffDays(dragState.currentStart!, dragState.originalStart);
+              const t1 = (dragState.currentStartTime === 'PM' ? 0.5 : 0);
+              const t0 = (dragState.originalStartTime === 'PM' ? 0.5 : 0);
+              totalDelta += (t1 - t0);
+
+              const startObj = addTimeUnits(snap.start, snap.startTime || 'AM', totalDelta, settings.minDayUnit || 1);
+              let endObj;
+              if (snap.workdays) {
+                endObj = calculateEndDate(startObj.date, snap.workdays, settings, startObj.timing);
+              } else {
+                endObj = addTimeUnits(snap.end, snap.endTime || 'PM', totalDelta, settings.minDayUnit || 1);
+              }
+              dragValues = {
+                start: startObj.date,
+                end: endObj.date,
+                startTime: startObj.timing,
+                endTime: endObj.timing
+              };
             } else if (isDraggingThis) {
               dragValues = {
                 start: dragState.currentStart,
