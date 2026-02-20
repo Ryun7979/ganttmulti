@@ -263,6 +263,24 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
           }
 
           // Sanitize
+          // Check Type
+          let type: 'task' | 'milestone' | undefined;
+          if (t.type === 'milestone' || t.type === 'task') {
+            type = t.type;
+          } else {
+            type = 'task';
+          }
+
+          // Check StartTime/EndTime
+          let startTime: 'AM' | 'PM' | undefined;
+          if (t.startTime === 'AM' || t.startTime === 'PM') {
+            startTime = t.startTime;
+          }
+          let endTime: 'AM' | 'PM' | undefined;
+          if (t.endTime === 'AM' || t.endTime === 'PM') {
+            endTime = t.endTime;
+          }
+
           return {
             id: String(t.id),
             name: String(t.name).trim(),
@@ -270,7 +288,10 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
             startDate: t.startDate,
             endDate: t.endDate,
             progress: progress,
-            workdays: workdays
+            workdays: workdays,
+            type: type,
+            startTime: startTime,
+            endTime: endTime
           };
         });
 

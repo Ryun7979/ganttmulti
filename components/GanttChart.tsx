@@ -380,6 +380,10 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
     return diffDays(ticks[index + 1], ticks[index]) * pixelsPerDay;
   };
 
+  const totalWidth = useMemo(() => {
+    return ticks.reduce((acc, _, i) => acc + getTickWidth(i), 0);
+  }, [ticks, pixelsPerDay]);
+
   const checkHoliday = (date: Date) => isHoliday(date, settings.customHolidays);
   const checkEvent = (date: Date) => isEvent(date, settings.customEvents);
 
@@ -448,7 +452,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
       </div>
 
       {/* Grid & Tasks */}
-      <div className="relative min-w-max">
+      <div className="relative" style={{ minWidth: totalWidth }}>
         {/* Background Grid Lines */}
         <div className="absolute inset-0 flex pointer-events-none z-0">
           {ticks.map((date, i) => {
