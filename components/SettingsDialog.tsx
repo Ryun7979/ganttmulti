@@ -108,9 +108,9 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   ];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="設定" maxWidth="max-w-2xl" icon={<Settings className="text-gray-600" size={20} />}>
+    <Modal isOpen={isOpen} onClose={onClose} title="設定" maxWidth="max-w-4xl" icon={<Settings className="text-gray-600" size={20} />}>
       <div className="flex flex-col h-[60vh]">
-        <div className="flex border-b border-gray-200 px-4 overflow-x-auto no-scrollbar">
+        <div className="flex border-b border-gray-200 px-4 overflow-x-auto hide-scrollbar">
           {tabs.map(tab => (
             <button
               key={tab.id}
