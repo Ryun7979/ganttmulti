@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from './Button';
 import { Task, ViewMode } from '../types';
-import { Calendar, Settings, Radio, List, Users, RotateCcw, RotateCw, Camera, FileDown, Upload, Download, Trash2, Plus } from 'lucide-react';
+import { Calendar, Settings, Radio, List, Users, RotateCcw, RotateCw, Camera, FileDown, Upload, Download, Trash2, Plus, Save, RefreshCw, XCircle, Unlock } from 'lucide-react';
 
 interface ToolbarProps {
   appName: string;
@@ -24,6 +24,13 @@ interface ToolbarProps {
   onImportClick: () => void;
   onDeleteAll: () => void;
   onNewTask: () => void;
+  // File System Access API
+  fileName: string | null;
+  onSaveFile: () => void;
+  onReloadFile: () => void;
+  onDisconnectFile: () => void;
+  isPermissionRequired: boolean;
+  onPermissionRequest: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -46,7 +53,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onExportJSON,
   onImportClick,
   onDeleteAll,
-  onNewTask
+  onNewTask,
+  fileName,
+  onSaveFile,
+  onReloadFile,
+  onDisconnectFile,
+  isPermissionRequired,
+  onPermissionRequest
 }) => {
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 flex flex-wrap items-center justify-between sticky top-0 z-30 shadow-sm gap-4">
@@ -84,6 +97,44 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
 
         <Button variant="secondary" size="sm" onClick={onOpenSnapshot} icon={<Camera size={16} />} title="スナップショット管理">一時保存</Button>
+
+        {fileName && (
+          <div className="flex items-center gap-1 bg-blue-50/50 p-1 rounded-lg border border-blue-100 shadow-sm animate-in fade-in slide-in-from-right-2 duration-300">
+            <div className="px-2 py-1 flex items-center gap-1.5 max-w-[180px]">
+              <span className="text-blue-500 shrink-0">📄</span>
+              <span className="text-[10px] font-bold text-blue-800 truncate" title={fileName}>{fileName}</span>
+            </div>
+
+            {isPermissionRequired ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={onPermissionRequest}
+                icon={<Unlock size={14} />}
+                className="!py-1 !px-2 bg-amber-500 hover:bg-amber-600 border-none animate-pulse"
+              >
+                再ログイン
+              </Button>
+            ) : (
+              <div className="flex gap-0.5 px-0.5">
+                <button
+                  onClick={onSaveFile}
+                  className="p-1.5 text-blue-600 hover:bg-white hover:shadow-sm rounded-md transition-all"
+                  title="上書き保存"
+                >
+                  <Save size={14} />
+                </button>
+                <button
+                  onClick={onReloadFile}
+                  className="p-1.5 text-green-600 hover:bg-white hover:shadow-sm rounded-md transition-all"
+                  title="最新の状態に更新"
+                >
+                  <RefreshCw size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-2 shrink-0">
           <Button variant="secondary" size="sm" onClick={onExportPDF} icon={<FileDown size={16} />} title="PDFとして保存">PDF</Button>

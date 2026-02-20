@@ -505,6 +505,108 @@ export const addTimeUnits = (
   return { date: currentDate, timing: currentTiming };
 };
 
+// インポートデータのバリデーション
+export const validateImportData = (content: string, currentSettings: AppSettings): { tasks: Task[], settings: AppSettings | null } => {
+  if (!content || content.trim() === '') {
+    throw new Error('ファイルが空です。');
+  }
+
+  let parsedData;
+  try {
+    parsedData = JSON.parse(content);
+  } catch (jsonError) {
+    throw new Error('ファイルが正しいJSON形式ではありません。\nカンマの不足や括弧の閉じ忘れがないか確認してください。');
+  }
+
+  let extractedTasks: any[] = [];
+  let extractedSettings: AppSettings | null = null;
+
+  // 形式の判定 (配列: 旧形式 / オブジェクト: 新形式)
+  if (Array.isArray(parsedData)) {
+    extractedTasks = parsedData;
+  } else if (typeof parsedData === 'object' && parsedData !== null) {
+    if (Array.isArray(parsedData.tasks)) {
+      extractedTasks = parsedData.tasks;
+
+      // 設定の抽出
+      if (parsedData.settings) {
+        extractedSettings = { ...DEFAULT_SETTINGS, ...parsedData.settings };
+      } else if (typeof parsedData.appName === 'string' && parsedData.appName.trim() !== '') {
+        extractedSettings = { ...currentSettings, appName: parsedData.appName };
+      }
+    } else {
+      throw new Error('データの形式が正しくありません。\n"tasks" プロパティが見つかりません。');
+    }
+  } else {
+    throw new Error('データの形式が正しくありません。\nルート要素はタスク配列またはプロジェクトオブジェクトである必要があります。');
+  }
+
+  if (extractedTasks.length === 0) {
+    throw new Error('インポートするタスクが見つかりません（リストが空です）。');
+  }
+
+  const cleanTasks: Task[] = extractedTasks.map((t: any, index: number) => {
+    const rowNum = index + 1;
+    const tempName = t.name ? `「${t.name}」` : '（名称不明）';
+
+    if (!t.id && t.id !== 0 && t.id !== '0') {
+      throw new Error(`${rowNum}行目のタスクにIDがありません。`);
+    }
+
+    if (!t.name || typeof t.name !== 'string' || !t.name.trim()) {
+      throw new Error(`${rowNum}行目 (ID: ${t.id}) のタスク名が無効、または空です。`);
+    }
+
+    const startDate = Date.parse(t.startDate);
+    const endDate = Date.parse(t.endDate);
+
+    if (!t.startDate || isNaN(startDate)) {
+      throw new Error(`${rowNum}行目 ${tempName}: 開始日 (${t.startDate}) が無効な日付形式です。YYYY-MM-DD形式を確認してください。`);
+    }
+    if (!t.endDate || isNaN(endDate)) {
+      throw new Error(`${rowNum}行目 ${tempName}: 終了日 (${t.endDate}) が無効な日付形式です。YYYY-MM-DD形式を確認してください。`);
+    }
+
+    if (startDate > endDate) {
+      throw new Error(`${rowNum}行目 ${tempName}: 開始日が終了日より後になっています。\n開始日: ${t.startDate}, 終了日: ${t.endDate}`);
+    }
+
+    const progress = Number(t.progress);
+    if (typeof t.progress === 'undefined' || isNaN(progress) || progress < 0 || progress > 100) {
+      throw new Error(`${rowNum}行目 ${tempName}: 進捗率 (progress) は0〜100の数値である必要があります。`);
+    }
+
+    let workdays: number | undefined;
+    if (typeof t.workdays !== 'undefined') {
+      const w = Number(t.workdays);
+      if (isNaN(w) || w < 0) {
+        throw new Error(`${rowNum}行目 ${tempName}: 稼働日 (workdays) は0以上の数値である必要があります。`);
+      }
+      workdays = w;
+    }
+
+    let type: 'task' | 'milestone' = (t.type === 'milestone' || t.type === 'task') ? t.type : 'task';
+    let startTime: 'AM' | 'PM' | undefined = (t.startTime === 'AM' || t.startTime === 'PM') ? t.startTime : undefined;
+    let endTime: 'AM' | 'PM' | undefined = (t.endTime === 'AM' || t.endTime === 'PM') ? t.endTime : undefined;
+
+    return {
+      id: String(t.id),
+      name: String(t.name).trim(),
+      assignee: t.assignee ? String(t.assignee).trim() : '',
+      startDate: t.startDate,
+      endDate: t.endDate,
+      progress: progress,
+      workdays: workdays,
+      type: type,
+      startTime: startTime,
+      endTime: endTime,
+      note: t.note ? String(t.note) : undefined
+    };
+  });
+
+  return { tasks: cleanTasks, settings: extractedSettings };
+};
+
 // Legacy support wrapper
 export const addWorkdays = (startDate: Date, workdays: number, settings: AppSettings): Date => {
   return calculateEndDate(startDate, workdays, settings).date;

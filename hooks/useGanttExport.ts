@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Task, AppSettings } from '../types';
-import { formatDate, DEFAULT_SETTINGS, calculateWorkdays, parseDate } from '../utils';
+import { formatDate, DEFAULT_SETTINGS, calculateWorkdays, parseDate, validateImportData } from '../utils';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -223,126 +223,7 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        if (!content || content.trim() === '') {
-          throw new Error('ファイルが空です。');
-        }
-
-        let parsedData;
-        try {
-          parsedData = JSON.parse(content);
-        } catch (jsonError) {
-          throw new Error('ファイルが正しいJSON形式ではありません。\nカンマの不足や括弧の閉じ忘れがないか確認してください。');
-        }
-
-        let extractedTasks: any[] = [];
-        let extractedSettings: AppSettings | null = null;
-
-        // Determine if it's legacy format (Array) or new format (Object with tasks)
-        if (Array.isArray(parsedData)) {
-          extractedTasks = parsedData;
-        } else if (typeof parsedData === 'object' && parsedData !== null) {
-          if (Array.isArray(parsedData.tasks)) {
-            extractedTasks = parsedData.tasks;
-
-            // Extract Settings if present
-            if (parsedData.settings) {
-              extractedSettings = { ...DEFAULT_SETTINGS, ...parsedData.settings };
-            } else if (typeof parsedData.appName === 'string' && parsedData.appName.trim() !== '') {
-              // Legacy format with just appName: preserve current settings but update appName
-              extractedSettings = { ...settings, appName: parsedData.appName };
-            }
-
-          } else {
-            throw new Error('データの形式が正しくありません。\n"tasks" プロパティが見つかりません。');
-          }
-        } else {
-          throw new Error('データの形式が正しくありません。\nルート要素はタスク配列またはプロジェクトオブジェクトである必要があります。');
-        }
-
-        if (extractedTasks.length === 0) {
-          throw new Error('インポートするタスクが見つかりません（リストが空です）。');
-        }
-
-        // Detailed Validation
-        const cleanTasks: Task[] = extractedTasks.map((t: any, index: number) => {
-          const rowNum = index + 1;
-          const tempName = t.name ? `「${t.name}」` : '（名称不明）';
-
-          // Check ID
-          if (!t.id && t.id !== 0 && t.id !== '0') {
-            throw new Error(`${rowNum}行目のタスクにIDがありません。`);
-          }
-
-          // Check Name
-          if (!t.name || typeof t.name !== 'string' || !t.name.trim()) {
-            throw new Error(`${rowNum}行目 (ID: ${t.id}) のタスク名が無効、または空です。`);
-          }
-
-          // Check Dates
-          const startDate = Date.parse(t.startDate);
-          const endDate = Date.parse(t.endDate);
-
-          if (!t.startDate || isNaN(startDate)) {
-            throw new Error(`${rowNum}行目 ${tempName}: 開始日 (${t.startDate}) が無効な日付形式です。YYYY-MM-DD形式を確認してください。`);
-          }
-          if (!t.endDate || isNaN(endDate)) {
-            throw new Error(`${rowNum}行目 ${tempName}: 終了日 (${t.endDate}) が無効な日付形式です。YYYY-MM-DD形式を確認してください。`);
-          }
-
-          // Logic Check
-          if (startDate > endDate) {
-            throw new Error(`${rowNum}行目 ${tempName}: 開始日が終了日より後になっています。\n開始日: ${t.startDate}, 終了日: ${t.endDate}`);
-          }
-
-          // Check Progress
-          const progress = Number(t.progress);
-          if (typeof t.progress === 'undefined' || isNaN(progress) || progress < 0 || progress > 100) {
-            throw new Error(`${rowNum}行目 ${tempName}: 進捗率 (progress) は0〜100の数値である必要があります。`);
-          }
-
-          // Check Workdays
-          let workdays: number | undefined;
-          if (typeof t.workdays !== 'undefined') {
-            const w = Number(t.workdays);
-            if (isNaN(w) || w < 0) {
-              throw new Error(`${rowNum}行目 ${tempName}: 稼働日 (workdays) は0以上の数値である必要があります。`);
-            }
-            workdays = w;
-          }
-
-          // Sanitize
-          // Check Type
-          let type: 'task' | 'milestone' | undefined;
-          if (t.type === 'milestone' || t.type === 'task') {
-            type = t.type;
-          } else {
-            type = 'task';
-          }
-
-          // Check StartTime/EndTime
-          let startTime: 'AM' | 'PM' | undefined;
-          if (t.startTime === 'AM' || t.startTime === 'PM') {
-            startTime = t.startTime;
-          }
-          let endTime: 'AM' | 'PM' | undefined;
-          if (t.endTime === 'AM' || t.endTime === 'PM') {
-            endTime = t.endTime;
-          }
-
-          return {
-            id: String(t.id),
-            name: String(t.name).trim(),
-            assignee: t.assignee ? String(t.assignee).trim() : '',
-            startDate: t.startDate,
-            endDate: t.endDate,
-            progress: progress,
-            workdays: workdays,
-            type: type,
-            startTime: startTime,
-            endTime: endTime,
-            note: t.note ? String(t.note) : undefined // Import note
-          };
-        });
+        const { tasks: cleanTasks, settings: extractedSettings } = validateImportData(content, settings);
 
         setPendingImportTasks(cleanTasks);
         setPendingSettings(extractedSettings);
@@ -351,7 +232,6 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
         console.error('Import Error:', error);
         onError(error.message || '不明なエラーが発生しました。');
       } finally {
-        // Reset the file input so the user can re-select the same file if they fixed it
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }

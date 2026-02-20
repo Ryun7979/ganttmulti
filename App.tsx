@@ -16,6 +16,7 @@ import { useAppPersistence } from './hooks/useAppPersistence';
 import { useSidebarResize } from './hooks/useSidebarResize';
 import { useTaskViewModel } from './hooks/useTaskViewModel';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useFileSystem } from './hooks/useFileSystem';
 import { Plus, Trash2, GripVertical, CheckCircle2, Download, Copy, ChevronDown, ChevronRight } from 'lucide-react';
 
 const INITIAL_TASKS: Task[] = [
@@ -103,8 +104,66 @@ const App: React.FC = () => {
   const {
     fileInputRef, exportContainerRef, taskListRef, ganttChartRef,
     pendingImportTasks, setPendingImportTasks, pendingSettings, setPendingSettings,
-    handleExportJSON, handleExportPDF, handleImportClick, handleFileChange
+    handleExportJSON, handleExportPDF, handleFileChange
   } = useGanttExport({ settings, tasks, setTasks, sidebarWidth });
+
+  const {
+    fileName,
+    isPermissionRequired,
+    pickFile,
+    saveFile,
+    reloadFile,
+    requestPermission,
+    disconnectFile
+  } = useFileSystem();
+
+  const handleFileSystemImport = async () => {
+    try {
+      const result = await pickFile(settings);
+      if (result) {
+        setPendingImportTasks(result.tasks);
+        setPendingSettings(result.settings);
+        handleImportSuccess();
+      }
+    } catch (error: any) {
+      handleImportError(error.message);
+    }
+  };
+
+  const handleFileSystemSave = async () => {
+    try {
+      const exportData = {
+        appName: settings.appName,
+        settings: settings,
+        exportedAt: new Date().toISOString(),
+        tasks: tasks.map(t => ({
+          ...t,
+          workdays: t.workdays ?? calculateWorkdays(parseDate(t.startDate), parseDate(t.endDate), settings, t.startTime, t.endTime)
+        }))
+      };
+      const success = await saveFile(exportData);
+      if (success) {
+        // Option: Show a small toast or success indicator
+      }
+    } catch (error: any) {
+      handleImportError(`保存に失敗しました: ${error.message}`);
+    }
+  };
+
+  const handleFileSystemReload = async () => {
+    try {
+      const result = await reloadFile(settings);
+      if (result) {
+        setTasks(result.tasks);
+        if (result.settings) {
+          setAppSettings(result.settings);
+        }
+        // Option: Show a small toast or success indicator for reload
+      }
+    } catch (error: any) {
+      handleImportError(`リロードに失敗しました: ${error.message}`);
+    }
+  };
 
   // --- 6. Dialog & Snapshot Logic ---
   const [snapshots, setSnapshots] = useState<Snapshot[]>(() => {
@@ -342,9 +401,15 @@ const App: React.FC = () => {
         onOpenSnapshot={() => setIsSnapshotDialogOpen(true)}
         onExportPDF={handleExportPDF}
         onExportJSON={handleExportJSON}
-        onImportClick={handleImportClick}
+        onImportClick={handleFileSystemImport}
         onDeleteAll={() => setConfirmDialog({ isOpen: true, type: 'all' })}
         onNewTask={() => { setEditingTask(null); setIsFormOpen(true); }}
+        fileName={fileName}
+        onSaveFile={handleFileSystemSave}
+        onReloadFile={handleFileSystemReload}
+        onDisconnectFile={disconnectFile}
+        isPermissionRequired={isPermissionRequired}
+        onPermissionRequest={requestPermission}
       />
 
       <main className="flex-1 overflow-hidden flex flex-col p-4 sm:p-6">
@@ -355,7 +420,7 @@ const App: React.FC = () => {
             <p className="text-gray-500 max-w-sm text-center mb-6">新しいタスクを作成するか、データをインポートしてください。</p>
             <div className="flex gap-3">
               <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} icon={<Plus size={18} />}>最初のタスクを作成</Button>
-              <Button variant="secondary" onClick={handleImportClick} icon={<Download size={18} />}>データをインポート</Button>
+              <Button variant="secondary" onClick={handleFileSystemImport} icon={<Download size={18} />}>データをインポート</Button>
             </div>
           </div>
         ) : (
@@ -494,7 +559,7 @@ const App: React.FC = () => {
         onSave={handleSaveSettings}
         onRegeneratePeerId={regenerateId}
         onExportJSON={handleExportJSON}
-        onImportClick={handleImportClick}
+        onImportClick={handleFileSystemImport}
         onDeleteAll={() => setConfirmDialog({ isOpen: true, type: 'all' })}
       />
       <CollaborationDialog isOpen={isCollabDialogOpen} onClose={() => setIsCollabDialogOpen(false)} myPeerId={myPeerId} isConnected={isConnected} connectionCount={connectionCount} onConnect={connectToPeer} />
