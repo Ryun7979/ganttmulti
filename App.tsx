@@ -142,9 +142,15 @@ const App: React.FC = () => {
   // --- Event Handlers (Remaining logic not extracted yet) ---
 
   // Task Manipulation
-  const handleSaveTask = (task: Task) => {
-    if (editingTask) setTasks(tasks.map(t => t.id === task.id ? task : t));
-    else setTasks([...tasks, task]);
+  const handleSaveTask = (taskOrTasks: Task | Task[]) => {
+    if (Array.isArray(taskOrTasks)) {
+      // Bulk create
+      setTasks([...tasks, ...taskOrTasks]);
+    } else {
+      // Single create or update
+      if (editingTask) setTasks(tasks.map(t => t.id === taskOrTasks.id ? taskOrTasks : t));
+      else setTasks([...tasks, taskOrTasks]);
+    }
     setIsFormOpen(false);
     setEditingTask(null);
   };

@@ -7,7 +7,7 @@ import { Plus, Save } from 'lucide-react';
 
 interface TaskFormProps {
   initialData?: Task | null;
-  onSave: (task: Task) => void;
+  onSave: (task: Task | Task[]) => void;
   onClose: () => void;
   settings: AppSettings;
 }
@@ -23,6 +23,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
   const [progress, setProgress] = useState(0);
   const [startTime, setStartTime] = useState<'AM' | 'PM'>('AM');
   const [endTime, setEndTime] = useState<'AM' | 'PM'>('PM');
+
+  // Bulk Creation State
+  const [mode, setMode] = useState<'single' | 'bulk'>('single');
+  const [bulkText, setBulkText] = useState('');
+  const [bulkErrors, setBulkErrors] = useState<string[]>([]);
 
   // Initialize form when initialData changes
   useEffect(() => {
@@ -41,6 +46,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       setWorkdaysStr(calculatedDays.toString());
       setProgress(initialData.progress);
       setType(initialData.type || 'task');
+      setMode('single'); // Ensure single mode on edit
     } else {
       // Reset for new task
       const today = new Date();
@@ -131,6 +137,72 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (mode === 'bulk') {
+      const lines = bulkText.split('\n').map(l => l.trim()).filter(l => l !== '');
+      const newTasks: Task[] = [];
+      const errors: string[] = [];
+
+      if (lines.length === 0) {
+        setBulkErrors(['タスクを入力してください。']);
+        return;
+      }
+
+      lines.forEach((line, index) => {
+        // Simple CSV parse: preserve quotes? No requirement, simple split by comma
+        // Format: Name, Assignee, Workdays
+        const parts = line.split(',').map(p => p.trim());
+        const tName = parts[0];
+        // If empty name
+        if (!tName) {
+          errors.push(`${index + 1}行目: タスク名は必須です。`);
+          return;
+        }
+
+        const tAssignee = parts[1] || '担当未設定';
+        let tWorkdays = 1;
+        if (parts[2]) {
+          const parsed = parseFloat(parts[2]);
+          if (!isNaN(parsed) && parsed > 0) {
+            tWorkdays = parsed;
+          } else {
+            // Invalid number, fallback to 1 or error? Requirement says "If omitted...". 
+            // If present but invalid, maybe default to 1 is safer/easier, or error?
+            // User req: "不正なデータの場合のエラー表示対応"
+            errors.push(`${index + 1}行目: 稼働日が不正です。半角数値を入力してください。`);
+            return;
+          }
+        }
+
+        // Create Task object (start date = today)
+        const today = new Date();
+        const startD = formatDate(today);
+        // Calculate end date based on workdays
+        const { date: endD, timing: endT } = calculateEndDate(today, tWorkdays, settings, 'AM');
+
+        newTasks.push({
+          id: generateId(), // Will be regenerated in App logic if needed, but unique here
+          name: tName,
+          assignee: tAssignee,
+          startDate: startD,
+          endDate: formatDate(endD),
+          startTime: 'AM', // Bulk starts AM
+          endTime: endT,
+          workdays: tWorkdays,
+          progress: 0,
+          type: 'task',
+        });
+      });
+
+      if (errors.length > 0) {
+        setBulkErrors(errors);
+        return;
+      }
+
+      onSave(newTasks);
+      return;
+    }
+
     if (!name || !startDate || !endDate) return;
 
     if (type === 'task' && new Date(endDate) < new Date(startDate)) {
@@ -162,110 +234,129 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
-        {/* Type Selection */}
-        <div className="flex gap-4 mb-4">
-          <label className={`flex items-center gap-2 cursor-pointer ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}>
-            <input
-              type="radio"
-              name="taskType"
-              value="task"
-              checked={type === 'task'}
-              onChange={() => !isEdit && setType('task')}
-              disabled={isEdit}
-              className="w-4 h-4 text-blue-600"
-            />
-            <span className="text-sm font-medium text-gray-700">タスク</span>
-          </label>
-          <label className={`flex items-center gap-2 cursor-pointer ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}>
-            <input
-              type="radio"
-              name="taskType"
-              value="milestone"
-              checked={type === 'milestone'}
-              onChange={() => !isEdit && setType('milestone')}
-              disabled={isEdit}
-              className="w-4 h-4 text-blue-600"
-            />
-            <span className="text-sm font-medium text-gray-700">マイルストーン</span>
-          </label>
-        </div>
+        {/* Mode Selection (Only for new tasks) */}
+        {!isEdit && (
+          <div className="flex border-b border-gray-200 mb-4">
+            <button
+              type="button"
+              className={`pb-2 px-4 text-sm font-medium transition-colors border-b-2 ${mode === 'single' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              onClick={() => setMode('single')}
+            >
+              通常作成
+            </button>
+            <button
+              type="button"
+              className={`pb-2 px-4 text-sm font-medium transition-colors border-b-2 ${mode === 'bulk' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              onClick={() => setMode('bulk')}
+            >
+              一括作成
+            </button>
+          </div>
+        )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">タスク名</label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            placeholder="例: 設計レビュー"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">担当者</label>
-          <input
-            type="text"
-            value={assignee}
-            onChange={(e) => setAssignee(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            placeholder="例: 山田 太郎"
-          />
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{type === 'milestone' ? '期日' : '開始日'}</label>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                required
-                value={startDate}
-                onChange={handleStartDateChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+        {mode === 'bulk' ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                一括入力 (CSV形式)
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                1行に1タスクを入力してください。<br />
+                形式: タスク名, 担当者(省略可), 稼働日(省略可)<br />
+                例:<br />
+                要件定義, 山田, 3<br />
+                設計, , 2
+              </p>
+              <textarea
+                className="w-full h-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none font-mono text-sm"
+                placeholder="タスク名, 担当者, 稼働日"
+                value={bulkText}
+                onChange={(e) => {
+                  setBulkText(e.target.value);
+                  if (bulkErrors.length > 0) setBulkErrors([]);
+                }}
               />
-              {type === 'task' && settings.minDayUnit && settings.minDayUnit < 1 && (
-                <select
-                  value={startTime}
-                  onChange={(e) => handleStartTimeChange(e.target.value as 'AM' | 'PM')}
-                  className="px-2 border border-gray-300 rounded-lg text-sm bg-white"
-                >
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
+              {bulkErrors.length > 0 && (
+                <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                  <p className="font-bold mb-1">エラーがあります:</p>
+                  <ul className="list-disc list-inside">
+                    {bulkErrors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           </div>
-
-          {type === 'task' && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">稼働日</label>
+        ) : (
+          /* Single Mode Content */
+          <>
+            {/* Type Selection */}
+            <div className="flex gap-4 mb-4">
+              <label className={`flex items-center gap-2 cursor-pointer ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}>
                 <input
-                  type="number"
-                  min={settings.minDayUnit || 1}
-                  step={settings.minDayUnit || 1}
-                  required
-                  value={workdaysStr}
-                  onChange={handleWorkdaysChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  type="radio"
+                  name="taskType"
+                  value="task"
+                  checked={type === 'task'}
+                  onChange={() => !isEdit && setType('task')}
+                  disabled={isEdit}
+                  className="w-4 h-4 text-blue-600"
                 />
-              </div>
+                <span className="text-sm font-medium text-gray-700">タスク</span>
+              </label>
+              <label className={`flex items-center gap-2 cursor-pointer ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <input
+                  type="radio"
+                  name="taskType"
+                  value="milestone"
+                  checked={type === 'milestone'}
+                  onChange={() => !isEdit && setType('milestone')}
+                  disabled={isEdit}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-sm font-medium text-gray-700">マイルストーン</span>
+              </label>
+            </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">タスク名</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                placeholder="例: 設計レビュー"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">担当者</label>
+              <input
+                type="text"
+                value={assignee}
+                onChange={(e) => setAssignee(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                placeholder="例: 山田 太郎"
+              />
+            </div>
+
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">終了日</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{type === 'milestone' ? '期日' : '開始日'}</label>
                 <div className="flex gap-2">
                   <input
                     type="date"
                     required
-                    value={endDate}
-                    onChange={handleEndDateChange}
+                    value={startDate}
+                    onChange={handleStartDateChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                   />
-                  {settings.minDayUnit && settings.minDayUnit < 1 && (
+                  {type === 'task' && settings.minDayUnit && settings.minDayUnit < 1 && (
                     <select
-                      value={endTime}
-                      onChange={(e) => handleEndTimeChange(e.target.value as 'AM' | 'PM')}
+                      value={startTime}
+                      onChange={(e) => handleStartTimeChange(e.target.value as 'AM' | 'PM')}
                       className="px-2 border border-gray-300 rounded-lg text-sm bg-white"
                     >
                       <option value="AM">AM</option>
@@ -274,25 +365,65 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
                   )}
                 </div>
               </div>
-            </>
-          )}
-        </div>
 
-        {type === 'task' && (
-          <div>
-            <div className="flex justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">達成率</label>
-              <span className="text-sm font-bold text-blue-600">{progress}%</span>
+              {type === 'task' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">稼働日</label>
+                    <input
+                      type="number"
+                      min={settings.minDayUnit || 1}
+                      step={settings.minDayUnit || 1}
+                      required
+                      value={workdaysStr}
+                      onChange={handleWorkdaysChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">終了日</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        required
+                        value={endDate}
+                        onChange={handleEndDateChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                      />
+                      {settings.minDayUnit && settings.minDayUnit < 1 && (
+                        <select
+                          value={endTime}
+                          onChange={(e) => handleEndTimeChange(e.target.value as 'AM' | 'PM')}
+                          className="px-2 border border-gray-300 rounded-lg text-sm bg-white"
+                        >
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={progress}
-              onChange={(e) => setProgress(Number(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-          </div>
+
+            {type === 'task' && (
+              <div>
+                <div className="flex justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">達成率</label>
+                  <span className="text-sm font-bold text-blue-600">{progress}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={progress}
+                  onChange={(e) => setProgress(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+              </div>
+            )}
+          </>
         )}
 
         <div className="flex justify-end pt-4 gap-2">
