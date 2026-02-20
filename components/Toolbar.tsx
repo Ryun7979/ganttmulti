@@ -10,14 +10,10 @@ interface ToolbarProps {
   isConnected: boolean;
   viewMode: ViewMode;
   groupBy: 'default' | 'assignee';
-  canUndo: boolean;
-  canRedo: boolean;
-  onOpenSettings: () => void;
   onOpenCollab: () => void;
   onChangeGroupBy: (mode: 'default' | 'assignee') => void;
   onChangeViewMode: (mode: ViewMode) => void;
-  onUndo: () => void;
-  onRedo: () => void;
+  onOpenSettings: () => void;
   onOpenSnapshot: () => void;
   onExportPDF: () => void;
   onExportJSON: () => void;
@@ -40,14 +36,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   isConnected,
   viewMode,
   groupBy,
-  canUndo,
-  canRedo,
-  onOpenSettings,
   onOpenCollab,
   onChangeGroupBy,
   onChangeViewMode,
-  onUndo,
-  onRedo,
+  onOpenSettings,
   onOpenSnapshot,
   onExportPDF,
   onExportJSON,
@@ -91,10 +83,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           ))}
         </div>
 
-        <div className="flex gap-1 shrink-0">
-          <Button variant="secondary" size="sm" onClick={onUndo} disabled={!canUndo} icon={<RotateCcw size={16} />} title="元に戻す (Ctrl+Z)" />
-          <Button variant="secondary" size="sm" onClick={onRedo} disabled={!canRedo} icon={<RotateCw size={16} />} title="やり直し (Ctrl+Y)" />
-        </div>
 
         <Button variant="secondary" size="sm" onClick={onOpenSnapshot} icon={<Camera size={16} />} title="スナップショット管理">一時保存</Button>
 

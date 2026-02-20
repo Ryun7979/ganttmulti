@@ -390,14 +390,10 @@ const App: React.FC = () => {
         isConnected={isConnected}
         viewMode={viewMode}
         groupBy={groupBy}
-        canUndo={canUndo}
-        canRedo={canRedo}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenCollab={() => setIsCollabDialogOpen(true)}
         onChangeGroupBy={setGroupBy}
         onChangeViewMode={setViewMode}
-        onUndo={undo}
-        onRedo={redo}
         onOpenSnapshot={() => setIsSnapshotDialogOpen(true)}
         onExportPDF={handleExportPDF}
         onExportJSON={handleExportJSON}
