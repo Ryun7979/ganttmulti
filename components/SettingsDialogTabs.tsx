@@ -27,7 +27,22 @@ export const GeneralSettingsTab: React.FC<{
             <label className="text-sm font-medium text-gray-700">日の最小単位</label>
             <select
                 value={settings.minDayUnit || 1}
-                onChange={(e) => onChange({ ...settings, minDayUnit: parseFloat(e.target.value) })}
+                onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    const currentDayWidth = settings.cellWidths?.Day || DEFAULT_SETTINGS.cellWidths!.Day;
+                    let newSettings = { ...settings, minDayUnit: val };
+
+                    if (currentDayWidth < 90) {
+                        newSettings = {
+                            ...newSettings,
+                            cellWidths: {
+                                ...(settings.cellWidths || DEFAULT_SETTINGS.cellWidths!),
+                                Day: 90
+                            }
+                        };
+                    }
+                    onChange(newSettings);
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
             >
                 <option value={1}>1日</option>
@@ -61,22 +76,22 @@ export const GeneralSettingsTab: React.FC<{
                         type="radio"
                         name="taskLabelPosition"
                         value="right"
-                        checked={settings.taskLabelPosition === 'right' || !settings.taskLabelPosition}
+                        checked={settings.taskLabelPosition === 'right'}
                         onChange={() => onChange({ ...settings, taskLabelPosition: 'right' })}
                         className="text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">右 (標準)</span>
+                    <span className="text-sm text-gray-700">右</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                     <input
                         type="radio"
                         name="taskLabelPosition"
                         value="top"
-                        checked={settings.taskLabelPosition === 'top'}
+                        checked={settings.taskLabelPosition === 'top' || !settings.taskLabelPosition}
                         onChange={() => onChange({ ...settings, taskLabelPosition: 'top' })}
                         className="text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700">上</span>
+                    <span className="text-sm text-gray-700">上 (標準)</span>
                 </label>
             </div>
             <p className="text-xs text-gray-500">ガントチャート上のタスク名の表示位置を設定します。</p>
