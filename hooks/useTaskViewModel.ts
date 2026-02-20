@@ -138,7 +138,16 @@ export const useTaskViewModel = ({ tasks, setTasks, settings }: UseTaskViewModel
       const incompleteTasks = groupTasks.filter(t => t.progress < 100).length;
 
       const groupWorkdays = groupTasks.reduce((acc, task) => {
-        return acc + calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings);
+        if (task.workdays !== undefined) {
+          return acc + task.workdays;
+        }
+        return acc + calculateWorkdays(
+          parseDate(task.startDate),
+          parseDate(task.endDate),
+          settings,
+          task.startTime,
+          task.endTime
+        );
       }, 0);
 
       // Add Group Header

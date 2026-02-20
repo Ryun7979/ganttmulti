@@ -236,12 +236,19 @@ const App: React.FC = () => {
 
   // Calculate Total Workdays
   const totalWorkdays = useMemo(() => {
-    return displayItems
-      .filter((item): item is Task => !('type' in item))
-      .reduce((acc, task) => {
-        return acc + calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings, task.startTime, task.endTime);
-      }, 0);
-  }, [displayItems, settings.customHolidays]);
+    return tasks.reduce((acc, task) => {
+      if (task.workdays !== undefined) {
+        return acc + task.workdays;
+      }
+      return acc + calculateWorkdays(
+        parseDate(task.startDate),
+        parseDate(task.endDate),
+        settings,
+        task.startTime,
+        task.endTime
+      );
+    }, 0);
+  }, [tasks, settings.customHolidays]);
 
   const uniqueAssignees = useMemo(() => {
     const s = new Set<string>();
