@@ -23,6 +23,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
   const [progress, setProgress] = useState(0);
   const [startTime, setStartTime] = useState<'AM' | 'PM'>('AM');
   const [endTime, setEndTime] = useState<'AM' | 'PM'>('PM');
+  const [note, setNote] = useState('');
 
   // Bulk Creation State
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
@@ -46,6 +47,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       setWorkdaysStr(calculatedDays.toString());
       setProgress(initialData.progress);
       setType(initialData.type || 'task');
+      setNote(initialData.note || '');
       setMode('single'); // Ensure single mode on edit
     } else {
       // Reset for new task
@@ -68,6 +70,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       setWorkdaysStr(calculatedDays.toString());
       setProgress(0);
       setType('task');
+      setNote('');
     }
   }, [initialData, settings]);
 
@@ -191,6 +194,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
           workdays: tWorkdays,
           progress: 0,
           type: 'task',
+          note: '',
         });
       });
 
@@ -221,6 +225,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       workdays: type === 'milestone' ? 0 : workdays,
       progress: Math.min(100, Math.max(0, Number(progress))),
       type,
+      note,
     });
   };
 
@@ -339,6 +344,16 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
                 onChange={(e) => setAssignee(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 placeholder="例: 山田 太郎"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Note (オプション)</label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none h-20"
+                placeholder="タスクの詳細やメモを入力..."
               />
             </div>
 

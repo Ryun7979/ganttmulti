@@ -10,6 +10,7 @@ export interface Task {
   progress: number;  // 0-100
   workdays?: number; // Optional: calculated workdays
   type?: 'task' | 'milestone'; // Default: 'task'
+  note?: string; // Optional: task note
 }
 
 export interface GroupRow {

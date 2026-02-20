@@ -339,7 +339,8 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
             workdays: workdays,
             type: type,
             startTime: startTime,
-            endTime: endTime
+            endTime: endTime,
+            note: t.note ? String(t.note) : undefined // Import note
           };
         });
 
