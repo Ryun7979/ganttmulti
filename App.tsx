@@ -32,6 +32,18 @@ const App: React.FC = () => {
     tasks, setTasks, undo, redo, canUndo, canRedo, settings, setAppSettings
   } = useAppPersistence(INITIAL_TASKS);
 
+  // Apply Font Size
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (settings.fontSize === 'large') {
+      root.style.fontSize = '125%';
+    } else if (settings.fontSize === 'medium') {
+      root.style.fontSize = '112.5%';
+    } else {
+      root.style.fontSize = '100%';
+    }
+  }, [settings.fontSize]);
+
   // --- 2. Custom Hooks for UI Logic ---
   const {
     sidebarWidth, isResizingSidebar, handleResizeStart

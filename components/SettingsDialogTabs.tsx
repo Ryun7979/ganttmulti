@@ -36,6 +36,20 @@ export const GeneralSettingsTab: React.FC<{
             <p className="text-xs text-gray-500">工数管理の最小単位を設定します。</p>
         </div>
 
+        <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">フォントサイズ</label>
+            <select
+                value={settings.fontSize || 'small'}
+                onChange={(e) => onChange({ ...settings, fontSize: e.target.value as 'small' | 'medium' | 'large' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+            >
+                <option value="small">小 (標準)</option>
+                <option value="medium">中</option>
+                <option value="large">大</option>
+            </select>
+            <p className="text-xs text-gray-500">画面全体の文字サイズを調整します。</p>
+        </div>
+
         <div className="space-y-3 pt-4 border-t">
             <h4 className="text-sm font-bold text-gray-700">稼働日設定</h4>
             <p className="text-xs text-gray-500 mb-1">チェックを入れた項目は「稼働日」として計算されます。</p>

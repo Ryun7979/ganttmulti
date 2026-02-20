@@ -78,6 +78,7 @@ export const DEFAULT_PALETTE: ColorSet[] = [
 export const DEFAULT_SETTINGS: AppSettings = {
   appName: 'GanttMalti',
   minDayUnit: 1,
+  fontSize: 'small',
   assigneePalette: DEFAULT_PALETTE,
   holidayColors: {
     headerBg: '#fef2f2', // bg-red-50
