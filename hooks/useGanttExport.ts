@@ -79,12 +79,16 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
               taskListClone.style.height = 'auto';
 
               // Adjust font sizes
+              // Adjust font sizes
               taskListClone.querySelectorAll('p.text-sm').forEach((node) => {
                 const p = node as HTMLElement;
                 p.style.fontSize = '12px';
-                p.style.lineHeight = '1.4';
-                p.style.paddingBottom = '2px';
-                p.style.overflow = 'visible';
+                p.style.lineHeight = '1.5';
+                p.style.height = '20px';
+                p.style.overflow = 'hidden';
+                p.style.textOverflow = 'ellipsis';
+                p.style.whiteSpace = 'nowrap';
+                p.style.display = 'block';
               });
               taskListClone.querySelectorAll('p[class*="text-[10px]"]').forEach((node) => {
                 const p = node as HTMLElement;
@@ -93,11 +97,14 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
                 p.style.paddingBottom = '2px';
                 p.style.overflow = 'visible';
               });
-              taskListClone.querySelectorAll('div.w-20').forEach((node) => {
+              // Target w-12 (Workdays) and w-20 (Assignee)
+              taskListClone.querySelectorAll('div.w-12, div.w-20').forEach((node) => {
                 const div = node as HTMLElement;
                 div.style.fontSize = '11px';
-                div.style.lineHeight = '1.4';
-                div.style.paddingBottom = '2px';
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.justifyContent = 'flex-end';
+                div.style.height = '100%';
                 div.style.overflow = 'visible';
               });
             }
@@ -121,10 +128,11 @@ export const useGanttExport = ({ settings, tasks, setTasks, sidebarWidth }: UseG
               ganttScrollClone.querySelectorAll('span.text-xs.font-semibold').forEach((node) => {
                 const span = node as HTMLElement;
                 span.style.fontSize = '9px';
-                span.style.lineHeight = '1.3';
-                span.style.paddingBottom = '1px';
+                span.style.lineHeight = '1';
+                span.style.transform = 'translateY(-1.5px)';
                 span.style.overflow = 'visible';
                 span.style.display = 'flex';
+                span.style.alignItems = 'center';
                 span.style.whiteSpace = 'nowrap';
               });
             }
