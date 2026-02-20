@@ -384,11 +384,14 @@ export const calculateWorkdays = (
   }
 
   // Adjust for AM/PM
+  // Adjust for AM/PM
   // Case 1: Start PM -> Missed morning (-0.5)
-  if (startTime === 'PM') count -= 0.5;
+  // Only deduct if the start date itself is a workday (otherwise it wasn't counted anyway)
+  if (startTime === 'PM' && isWorkday(start, settings)) count -= 0.5;
 
   // Case 2: End AM -> Missed afternoon (-0.5)
-  if (endTime === 'AM') count -= 0.5;
+  // Only deduct if the end date itself is a workday
+  if (endTime === 'AM' && isWorkday(end, settings)) count -= 0.5;
 
   // Safety: If start == end and Start PM and End AM, count might be negative calculationally?
   // 2/19(PM) to 2/19(AM) <- Invalid range if on same day.
