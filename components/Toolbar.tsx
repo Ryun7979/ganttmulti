@@ -62,10 +62,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         )}
       </div>
 
-      {/* Center Section: File Operations (Import or File Info) */}
       <div className="flex items-center justify-center flex-1">
         {fileName ? (
           <div className="flex items-center gap-1 bg-blue-50/50 p-1 rounded-lg border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top-1 duration-300">
+            <button
+              onClick={onImportClick}
+              className="p-1.5 text-blue-600 hover:bg-white hover:shadow-sm rounded-md transition-all mr-1 border-r border-blue-100 pr-2 rounded-r-none"
+              title="別のJSONファイルをインポート"
+            >
+              <Download size={14} />
+            </button>
             <div className="px-2 py-1 flex items-center gap-1.5 max-w-[200px]">
               <span className="text-blue-500 shrink-0">📄</span>
               <span className="text-xs font-bold text-blue-800 truncate" title={fileName}>{fileName}</span>
