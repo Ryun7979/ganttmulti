@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { GanttChart } from './components/GanttChart';
 import { TaskForm } from './components/TaskForm';
 import { Button } from './components/Button';
@@ -209,11 +209,34 @@ const App: React.FC = () => {
   const { start: timelineStart, end: timelineEnd } = useMemo(() => getTimelineRange(tasks, viewMode), [tasks, viewMode]);
 
   // Sync Scroll
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>, targetRef: React.RefObject<HTMLDivElement>) => {
-    if (targetRef.current && Math.abs(targetRef.current.scrollTop - e.currentTarget.scrollTop) > 1) {
-      targetRef.current.scrollTop = e.currentTarget.scrollTop;
+  // Sync Scroll
+  const activeScrollRef = useRef<HTMLElement | null>(null);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>, targetRef: React.RefObject<HTMLDivElement>) => {
+    const source = e.currentTarget;
+    const target = targetRef.current;
+    if (!target) return;
+
+    // Block sync if another element is already the active scroller
+    if (activeScrollRef.current && activeScrollRef.current !== source) {
+      return;
     }
-  };
+
+    // Set active scroller
+    activeScrollRef.current = source;
+
+    // Reset active scroller after scroll stops
+    const timerId = (source as any).__scrollTimer;
+    if (timerId) clearTimeout(timerId);
+    (source as any).__scrollTimer = setTimeout(() => {
+      activeScrollRef.current = null;
+    }, 50);
+
+    // Sync position
+    if (Math.abs(target.scrollTop - source.scrollTop) > 1) {
+      target.scrollTop = source.scrollTop;
+    }
+  }, []);
 
   // Confirm Dialog Content
   const getDialogContent = () => {

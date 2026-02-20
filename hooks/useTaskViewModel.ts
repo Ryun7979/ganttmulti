@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Task, TaskOrGroup, AppSettings } from '../types';
 import { calculateWorkdays, parseDate } from '../utils';
 
@@ -192,9 +192,16 @@ export const useTaskViewModel = ({ tasks, setTasks, settings }: UseTaskViewModel
     setTimeout(() => setDraggedTaskIndex(index), 0);
   };
 
+  // Throttling for drag over
+  const lastDragOverTime = useRef(0);
+
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+
+    const now = Date.now();
+    if (now - lastDragOverTime.current < 50) return; // 50ms throttle
+    lastDragOverTime.current = now;
 
     if (groupBy !== 'default' || draggedTaskIndex === null || !draggingTasks || !draggingTaskIds) return;
 
