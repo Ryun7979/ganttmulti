@@ -671,7 +671,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
                     <div className="w-1.5 h-4 bg-white rounded-full shadow-md ring-1 ring-gray-300 transform transition-transform hover:scale-110 active:scale-125" />
                   </div>
 
-                  <div className="absolute inset-0 flex items-center px-2 pointer-events-none overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-start px-2 pointer-events-none overflow-hidden">
                     <span
                       className="text-xs font-semibold truncate flex items-center"
                       style={{ color: isCompleted ? '#e5e7eb' : (displayProgress > 50 ? assigneeColor.textColor : '#374151') }}
@@ -679,8 +679,15 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
                       {isCompleted && (
                         <Check size={14} className="mr-1 animate-pop-in" strokeWidth={3} />
                       )}
-                      {task.name} ({displayProgress}%)
+                      {displayProgress}%
                     </span>
+                  </div>
+
+                  {/* Task Name outside the bar */}
+                  <div
+                    className="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-medium text-gray-700 pointer-events-none"
+                  >
+                    {task.name}
                   </div>
 
                   <div
