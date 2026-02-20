@@ -8,7 +8,7 @@ import { CollaborationDialog } from './components/CollaborationDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Toolbar } from './components/Toolbar';
 import { Task, ViewMode, Snapshot, AppSettings } from './types';
-import { getTimelineRange, generateId, formatDate, addDays, DEFAULT_SETTINGS, calculateWorkdays, calculateEndDate, parseDate } from './utils';
+import { getTimelineRange, generateId, formatDate, addDays, DEFAULT_SETTINGS, calculateWorkdays, calculateEndDate, parseDate, getPaletteColor } from './utils';
 
 import { useCollaboration } from './hooks/useCollaboration';
 import { useGanttExport } from './hooks/useGanttExport';
@@ -243,6 +243,12 @@ const App: React.FC = () => {
       }, 0);
   }, [displayItems, settings.customHolidays]);
 
+  const uniqueAssignees = useMemo(() => {
+    const s = new Set<string>();
+    tasks.forEach(t => s.add(t.assignee || ''));
+    return Array.from(s).sort();
+  }, [tasks]);
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-800">
       <input type="file" accept=".json" ref={fileInputRef} onChange={(e) => handleFileChange(e, handleImportSuccess, handleImportError)} style={{ display: 'none' }} />
@@ -313,6 +319,10 @@ const App: React.FC = () => {
                   const isCompleted = task.progress === 100;
                   const isDraggedItem = draggingTaskIds ? draggingTaskIds.has(task.id) : draggedTaskIndex === index;
                   const isSelected = selectedTaskIds.has(task.id);
+                  const isMilestone = task.type === 'milestone';
+
+                  const assigneeIndex = uniqueAssignees.indexOf(task.assignee || '');
+                  const assigneeColor = getPaletteColor(assigneeIndex, settings.assigneePalette);
 
                   return (
                     <div key={task.id}
@@ -349,11 +359,18 @@ const App: React.FC = () => {
                         <GripVertical size={16} />
                       </div>
                       <div className="flex-1 min-w-0 pr-2 cursor-pointer" title="ダブルクリックして編集">
-                        <p className={`text-sm font-medium truncate transition-colors ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{task.name}</p>
-                        <p className={`text-[10px] truncate ${isCompleted ? 'text-gray-400' : 'text-gray-500'}`}>{task.startDate} - {task.endDate}</p>
+                        <p
+                          className={`text-sm font-medium truncate transition-colors ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}
+                          style={isMilestone && !isCompleted ? { color: assigneeColor.bar } : {}}
+                        >
+                          {task.name}
+                        </p>
+                        <p className={`text-[10px] truncate ${isCompleted ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {isMilestone ? task.endDate : `${task.startDate} - ${task.endDate}`}
+                        </p>
                       </div>
                       <div className={`w-12 text-right text-xs truncate ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings, task.startTime, task.endTime)}
+                        {isMilestone ? 'M' : calculateWorkdays(parseDate(task.startDate), parseDate(task.endDate), settings, task.startTime, task.endTime)}
                       </div>
                       <div className={`w-20 text-right text-xs truncate mr-2 cursor-pointer ${isCompleted ? 'text-gray-400' : (groupBy === 'assignee' ? 'font-bold text-blue-700' : 'text-gray-600')}`}>{task.assignee}</div>
                       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all gap-1">

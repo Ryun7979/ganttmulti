@@ -517,6 +517,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
             }
 
             const task = item as Task;
+            const isMilestone = task.type === 'milestone';
             const isDraggingThis = dragState.isDragging && dragState.taskId === task.id;
             const isSelected = selectedTaskIds?.has(task.id);
 
@@ -565,6 +566,48 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
               left: `${(startDiff + offset) * pixelsPerDay}px`,
               width: `${duration * pixelsPerDay}px`
             };
+
+            if (isMilestone) {
+              const startDiff = diffDays(displayStart, timelineStart);
+              const style = {
+                left: `${(startDiff + 1) * pixelsPerDay}px`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+              };
+
+              return (
+                <div
+                  key={task.id}
+                  className={`h-12 border-b border-gray-100 relative group transition-colors hover:bg-white/50`}
+                >
+                  <div
+                    className={`absolute z-10 cursor-grab hover:scale-110 transition-transform ${isDraggingThis ? 'cursor-grabbing scale-125' : ''}`}
+                    style={style}
+                    onMouseDown={(e) => handleMouseDown(e, task, 'move')}
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      onEditTask(task);
+                    }}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <div
+                        style={{ color: assigneeColor.bar }}
+                        className="text-lg leading-none"
+                      >
+                        ▼
+                      </div>
+                      <div
+                        className="absolute left-full ml-1 text-xs font-semibold whitespace-nowrap px-1 rounded bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100"
+                        style={{ color: assigneeColor.bar, top: '50%', transform: 'translateY(-50%)' }}
+                      >
+                        {task.name} ({displayStart.getMonth() + 1}/{displayStart.getDate()})
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <div

@@ -17,6 +17,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
   const [assignee, setAssignee] = useState('');
   const [startDate, setStartDate] = useState(formatDate(new Date()));
   const [endDate, setEndDate] = useState(formatDate(addDays(new Date(), 3)));
+  const [type, setType] = useState<'task' | 'milestone'>('task');
   const [workdays, setWorkdays] = useState(0);
   const [workdaysStr, setWorkdaysStr] = useState('0');
   const [progress, setProgress] = useState(0);
@@ -39,6 +40,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       setWorkdays(calculatedDays);
       setWorkdaysStr(calculatedDays.toString());
       setProgress(initialData.progress);
+      setType(initialData.type || 'task');
     } else {
       // Reset for new task
       const today = new Date();
@@ -56,7 +58,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       const calculatedDays = calculateWorkdays(parseDate(initialStart), parseDate(initialEnd), settings, 'AM', 'PM');
       setWorkdays(calculatedDays);
       setWorkdaysStr(calculatedDays.toString());
+      setWorkdays(calculatedDays);
+      setWorkdaysStr(calculatedDays.toString());
       setProgress(0);
+      setType('task');
     }
   }, [initialData, settings]);
 
@@ -64,6 +69,12 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newStart = e.target.value;
     setStartDate(newStart);
+
+    if (type === 'milestone') {
+      setEndDate(newStart);
+      return;
+    }
+
     if (newStart && endDate) {
       // 開始日が変更されたら、終了日を維持して稼働日を再計算
       const days = calculateWorkdays(parseDate(newStart), parseDate(endDate), settings, startTime, endTime);
@@ -122,7 +133,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
     e.preventDefault();
     if (!name || !startDate || !endDate) return;
 
-    if (new Date(endDate) < new Date(startDate)) {
+    if (type === 'task' && new Date(endDate) < new Date(startDate)) {
       alert("終了日は開始日より後の日付を指定してください。");
       return;
     }
@@ -132,11 +143,12 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       name,
       assignee,
       startDate,
-      endDate,
-      startTime,
-      endTime,
-      workdays,
+      endDate: type === 'milestone' ? startDate : endDate,
+      startTime: type === 'milestone' ? 'AM' : startTime,
+      endTime: type === 'milestone' ? 'AM' : endTime,
+      workdays: type === 'milestone' ? 0 : workdays,
       progress: Math.min(100, Math.max(0, Number(progress))),
+      type,
     });
   };
 
@@ -150,6 +162,34 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
       maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Type Selection */}
+        <div className="flex gap-4 mb-4">
+          <label className={`flex items-center gap-2 cursor-pointer ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <input
+              type="radio"
+              name="taskType"
+              value="task"
+              checked={type === 'task'}
+              onChange={() => !isEdit && setType('task')}
+              disabled={isEdit}
+              className="w-4 h-4 text-blue-600"
+            />
+            <span className="text-sm font-medium text-gray-700">タスク</span>
+          </label>
+          <label className={`flex items-center gap-2 cursor-pointer ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <input
+              type="radio"
+              name="taskType"
+              value="milestone"
+              checked={type === 'milestone'}
+              onChange={() => !isEdit && setType('milestone')}
+              disabled={isEdit}
+              className="w-4 h-4 text-blue-600"
+            />
+            <span className="text-sm font-medium text-gray-700">マイルストーン</span>
+          </label>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">タスク名</label>
           <input
@@ -175,7 +215,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">開始日</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{type === 'milestone' ? '期日' : '開始日'}</label>
             <div className="flex gap-2">
               <input
                 type="date"
@@ -184,7 +224,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
                 onChange={handleStartDateChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
               />
-              {settings.minDayUnit && settings.minDayUnit < 1 && (
+              {type === 'task' && settings.minDayUnit && settings.minDayUnit < 1 && (
                 <select
                   value={startTime}
                   onChange={(e) => handleStartTimeChange(e.target.value as 'AM' | 'PM')}
@@ -197,57 +237,63 @@ export const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSave, onClose
             </div>
           </div>
 
+          {type === 'task' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">稼働日</label>
+                <input
+                  type="number"
+                  min={settings.minDayUnit || 1}
+                  step={settings.minDayUnit || 1}
+                  required
+                  value={workdaysStr}
+                  onChange={handleWorkdaysChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">終了日</label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    required
+                    value={endDate}
+                    onChange={handleEndDateChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  />
+                  {settings.minDayUnit && settings.minDayUnit < 1 && (
+                    <select
+                      value={endTime}
+                      onChange={(e) => handleEndTimeChange(e.target.value as 'AM' | 'PM')}
+                      className="px-2 border border-gray-300 rounded-lg text-sm bg-white"
+                    >
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {type === 'task' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">稼働日</label>
+            <div className="flex justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">達成率</label>
+              <span className="text-sm font-bold text-blue-600">{progress}%</span>
+            </div>
             <input
-              type="number"
-              min={settings.minDayUnit || 1}
-              step={settings.minDayUnit || 1}
-              required
-              value={workdaysStr}
-              onChange={handleWorkdaysChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              type="range"
+              min="0"
+              max="100"
+              value={progress}
+              onChange={(e) => setProgress(Number(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">終了日</label>
-            <div className="flex gap-2">
-              <input
-                type="date"
-                required
-                value={endDate}
-                onChange={handleEndDateChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-              />
-              {settings.minDayUnit && settings.minDayUnit < 1 && (
-                <select
-                  value={endTime}
-                  onChange={(e) => handleEndTimeChange(e.target.value as 'AM' | 'PM')}
-                  className="px-2 border border-gray-300 rounded-lg text-sm bg-white"
-                >
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div className="flex justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">達成率</label>
-            <span className="text-sm font-bold text-blue-600">{progress}%</span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={progress}
-            onChange={(e) => setProgress(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-          />
-        </div>
+        )}
 
         <div className="flex justify-end pt-4 gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>キャンセル</Button>

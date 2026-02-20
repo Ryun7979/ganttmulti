@@ -9,6 +9,7 @@ export interface Task {
   endTime?: 'AM' | 'PM';   // Default: PM
   progress: number;  // 0-100
   workdays?: number; // Optional: calculated workdays
+  type?: 'task' | 'milestone'; // Default: 'task'
 }
 
 export interface GroupRow {
