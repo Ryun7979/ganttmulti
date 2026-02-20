@@ -234,10 +234,14 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
         ? diffDays(currentDragState.currentStart, currentDragState.originalStart)
         : 0;
 
+      const isSameDay = startDiff === 0;
+      const isSameTime = currentDragState.currentStartTime === currentDragState.originalStartTime;
+      const hasMovedEffective = !isSameDay || !isSameTime;
+
       // Logic for Selection on Click (No Move)
-      // If we didn't move effectively (startDiff === 0), treating it as a click.
+      // If we didn't move effectively (hasMovedEffective === false), treating it as a click.
       // We only toggle selection here if modifiers weren't used (modifiers handled in MouseDown).
-      if (startDiff === 0 && currentDragState.mode === 'move' && onSelectTask) {
+      if (!hasMovedEffective && currentDragState.mode === 'move' && onSelectTask) {
         // If it was a clean click without move, select this task.
         onSelectTask(currentDragState.taskId);
       }
@@ -284,7 +288,7 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
           }
         } else {
           // Bulk Move
-          if (currentDragState.mode === 'move' && startDiff !== 0) {
+          if (currentDragState.mode === 'move' && hasMovedEffective) {
             // Need to calculate DELTA from original to current for the MAIN task
             // Then apply that delta to others.
             // Wait, calculateEndDate uses workdays.
