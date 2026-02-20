@@ -51,7 +51,7 @@ export const GanttHeader = React.memo(({ ticks, viewMode, settings, getTickWidth
                         {viewMode === 'Day' && (
                             <>
                                 <span style={{ color: dateTextColor }}>
-                                    {date.getDate() === 1 ? `${date.getMonth() + 1}/${date.getDate()}` : date.getDate()}
+                                    {(date.getDate() === 1 || date.getDay() === 1) ? `${date.getMonth() + 1}/${date.getDate()}` : date.getDate()}
                                 </span>
                                 <span style={{ fontSize: '10px', color: weekdayTextColor }}>
                                     {date.toLocaleDateString('ja-JP', { weekday: 'narrow' })}
