@@ -199,19 +199,26 @@ export const TaskItem = React.memo(({
                         <div className="w-1.5 h-4 bg-white rounded-full shadow-md ring-1 ring-gray-300 transform transition-transform hover:scale-110 active:scale-125" />
                     </div>
 
-                    <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-medium text-gray-700 pointer-events-none flex items-center gap-2">
-                        <span>{displayProgress}%</span>
-                        <span>{task.name}</span>
-                    </div>
-
-                    <div
-                        className="absolute left-0 top-0 bottom-0 w-3 cursor-w-resize hover:bg-black/10 rounded-l-md transition-colors z-20"
+                    <div className="absolute left-0 top-0 bottom-0 w-3 cursor-w-resize hover:bg-black/10 rounded-l-md transition-colors z-20"
                         onMouseDown={(e) => onMouseDown(e, task, 'resize-left')}
                     />
                     <div
                         className="absolute right-0 top-0 bottom-0 w-3 cursor-e-resize hover:bg-black/10 rounded-r-md transition-colors z-20"
                         onMouseDown={(e) => onMouseDown(e, task, 'resize-right')}
                     />
+
+                    {/* Task Label & Progress */}
+                    <div
+                        className={`absolute whitespace-nowrap text-xs font-medium text-gray-700 pointer-events-none flex items-center gap-2
+                            ${settings.taskLabelPosition === 'top'
+                                ? 'left-2 top-1/2 -translate-y-1/2'
+                                : 'left-full ml-2 top-1/2 -translate-y-1/2'
+                            }
+                        `}
+                    >
+                        <span>{displayProgress}%</span>
+                        <span>{task.name}</span>
+                    </div>
                 </div>
             </div>
             {renderTooltip()}

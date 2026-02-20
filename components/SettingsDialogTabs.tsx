@@ -53,6 +53,35 @@ export const GeneralSettingsTab: React.FC<{
             <p className="text-xs text-gray-500">画面全体の文字サイズを調整します。</p>
         </div>
 
+        <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">タスク名の表示位置</label>
+            <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="radio"
+                        name="taskLabelPosition"
+                        value="right"
+                        checked={settings.taskLabelPosition === 'right' || !settings.taskLabelPosition}
+                        onChange={() => onChange({ ...settings, taskLabelPosition: 'right' })}
+                        className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">右 (標準)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="radio"
+                        name="taskLabelPosition"
+                        value="top"
+                        checked={settings.taskLabelPosition === 'top'}
+                        onChange={() => onChange({ ...settings, taskLabelPosition: 'top' })}
+                        className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">上</span>
+                </label>
+            </div>
+            <p className="text-xs text-gray-500">ガントチャート上のタスク名の表示位置を設定します。</p>
+        </div>
+
 
         <div className="space-y-4 pt-4 border-t">
             <h4 className="text-sm font-bold text-gray-700">表示設定</h4>
