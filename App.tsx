@@ -278,6 +278,8 @@ const App: React.FC = () => {
       setTasks([]);
       // Reset all settings to defaults
       setAppSettings(structuredClone(DEFAULT_SETTINGS));
+      // DISCONNECT FILE tracking on "Delete All"
+      disconnectFile();
     }
     else if (type === 'single' && taskId) setTasks(tasks.filter(t => t.id !== taskId));
     else if (type === 'import' && pendingImportTasks) {
