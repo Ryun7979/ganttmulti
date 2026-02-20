@@ -44,6 +44,35 @@ const App: React.FC = () => {
     }
   }, [settings.fontSize]);
 
+  // --- Assignee Color Mapping Logic ---
+  React.useEffect(() => {
+    const colorMap = { ...(settings.assigneeColorMap || {}) };
+    let hasChanges = false;
+
+    // Get all unique assignees currently in tasks
+    const currentAssignees = Array.from(new Set(tasks.map(t => t.assignee || '')));
+
+    currentAssignees.forEach(name => {
+      if (colorMap[name] === undefined) {
+        // Find next available color index
+        const usedIndices = Object.values(colorMap);
+        let nextIndex = 0;
+        // Simple logic: find first index (0-19) that isn't used much? 
+        // Or just find the smallest index not used, or even simpler: (usedCount % 20)
+        // Here we'll just pick (number of known assignees) % 20
+        const knownCount = Object.keys(colorMap).length;
+        nextIndex = knownCount % 20;
+
+        colorMap[name] = nextIndex;
+        hasChanges = true;
+      }
+    });
+
+    if (hasChanges) {
+      setAppSettings({ ...settings, assigneeColorMap: colorMap });
+    }
+  }, [tasks, settings, setAppSettings]);
+
   // --- 2. Custom Hooks for UI Logic ---
   const {
     sidebarWidth, isResizingSidebar, handleResizeStart
@@ -291,12 +320,6 @@ const App: React.FC = () => {
     }, 0);
   }, [tasks, settings.customHolidays]);
 
-  const uniqueAssignees = useMemo(() => {
-    const s = new Set<string>();
-    tasks.forEach(t => s.add(t.assignee || ''));
-    return Array.from(s).sort();
-  }, [tasks]);
-
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-800">
       <input type="file" accept=".json" ref={fileInputRef} onChange={(e) => handleFileChange(e, handleImportSuccess, handleImportError)} style={{ display: 'none' }} />
@@ -369,8 +392,8 @@ const App: React.FC = () => {
                   const isSelected = selectedTaskIds.has(task.id);
                   const isMilestone = task.type === 'milestone';
 
-                  const assigneeIndex = uniqueAssignees.indexOf(task.assignee || '');
-                  const assigneeColor = getPaletteColor(assigneeIndex, settings.assigneePalette);
+                  const assigneeColorIndex = settings.assigneeColorMap?.[task.assignee || ''] ?? 0;
+                  const assigneeColor = getPaletteColor(assigneeColorIndex, settings.assigneePalette);
 
                   return (
                     <div key={task.id}

@@ -3,7 +3,7 @@ import { AppSettings } from '../types';
 import { Modal } from './Modal';
 import { Settings } from 'lucide-react';
 import { tintColor, shadeColor, parseDate, isWeekend, DEFAULT_SETTINGS } from '../utils';
-import { GeneralSettingsTab, PaletteSettingsTab, CalendarSettingsTab, NetworkSettingsTab, ManualTab, FileSettingsTab } from './SettingsDialogTabs';
+import { GeneralSettingsTab, AssigneeSettingsTab, PaletteSettingsTab, CalendarSettingsTab, NetworkSettingsTab, ManualTab, FileSettingsTab } from './SettingsDialogTabs';
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   onImportClick,
   onDeleteAll
 }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'palette' | 'calendar' | 'network' | 'manual' | 'file'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'assignee' | 'palette' | 'calendar' | 'network' | 'manual' | 'file'>('general');
   const [localSettings, setLocalSettings] = useState<AppSettings>(() => structuredClone(settings));
   const [newHoliday, setNewHoliday] = useState('');
   const [holidayError, setHolidayError] = useState<string | null>(null);
@@ -99,6 +99,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
   const tabs = [
     { id: 'general', label: '一般' },
+    { id: 'assignee', label: '担当者設定' },
     { id: 'palette', label: 'カラーパレット' },
     { id: 'calendar', label: 'カレンダー設定' },
     { id: 'file', label: 'ファイル設定' },
@@ -122,6 +123,12 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
         </div>
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'general' && <GeneralSettingsTab settings={localSettings} onChange={setLocalSettings} />}
+          {activeTab === 'assignee' && (
+            <AssigneeSettingsTab
+              settings={localSettings}
+              onChange={(newMap) => setLocalSettings({ ...localSettings, assigneeColorMap: newMap })}
+            />
+          )}
           {activeTab === 'palette' && <PaletteSettingsTab palette={localSettings.assigneePalette} onChange={handlePaletteChange} />}
           {activeTab === 'calendar' && (
             <CalendarSettingsTab

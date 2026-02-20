@@ -108,4 +108,5 @@ export interface AppSettings {
     Week: number;  // Default: 84
     Month: number; // Default: 120
   };
+  assigneeColorMap?: Record<string, number>; // assignee name -> palette index
 }

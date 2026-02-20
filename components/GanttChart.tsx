@@ -33,12 +33,6 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
 
   const tasks = useMemo(() => items.filter((i): i is Task => !('type' in i && i.type === 'group')), [items]);
 
-  const uniqueAssignees = useMemo(() => {
-    const s = new Set<string>();
-    tasks.forEach(t => s.add(t.assignee || ''));
-    return Array.from(s).sort();
-  }, [tasks]);
-
   const pixelsPerDay = getPixelsPerDay(viewMode, settings);
 
   const ticks = useMemo(() => {
@@ -116,8 +110,8 @@ export const GanttChart = forwardRef<HTMLDivElement, GanttChartProps>(({
             const task = item as Task;
             const isDraggingThis = dragState.isDragging && dragState.taskId === task.id;
             const isSelected = selectedTaskIds?.has(task.id) || false;
-            const assigneeIndex = uniqueAssignees.indexOf(task.assignee || '');
-            const assigneeColor = getPaletteColor(assigneeIndex, settings.assigneePalette);
+            const assigneeColorIndex = settings.assigneeColorMap?.[task.assignee || ''] ?? 0;
+            const assigneeColor = getPaletteColor(assigneeColorIndex, settings.assigneePalette);
 
             // Calculate Drag Override values needed for TaskItem
             let dragValues = undefined;

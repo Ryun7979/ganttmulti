@@ -2,7 +2,7 @@ import React from 'react';
 import { AppSettings, ColorSet } from '../types';
 import { Button } from './Button';
 import { DEFAULT_SETTINGS } from '../utils';
-import { RefreshCw, Trash2, Plus, AlertCircle, RotateCcw, BookOpen, CheckCircle2, Download, Upload } from 'lucide-react';
+import { RefreshCw, Trash2, Plus, AlertCircle, RotateCcw, BookOpen, CheckCircle2, Download, Upload, UserCircle } from 'lucide-react';
 
 // --- Sub-components for Tabs ---
 
@@ -248,6 +248,70 @@ export const GeneralSettingsTab: React.FC<{
         </div>
     </div>
 );
+
+export const AssigneeSettingsTab: React.FC<{
+    settings: AppSettings;
+    onChange: (newMap: Record<string, number>) => void;
+}> = ({ settings, onChange }) => {
+    const assigneeMap = settings.assigneeColorMap || {};
+    const assignees = Object.keys(assigneeMap).sort();
+
+    return (
+        <div className="space-y-4">
+            <p className="text-sm text-gray-500 mb-2">
+                担当者ごとに設定されたカラーパレット番号を変更できます。<br />
+                新しい担当者はタスクが作成された際に自動的に追加されます。
+            </p>
+            {assignees.length === 0 ? (
+                <div className="p-8 text-center border-2 border-dashed rounded-xl bg-gray-50 text-gray-400">
+                    <UserCircle size={48} className="mx-auto mb-2 opacity-20" />
+                    <p className="text-sm">担当データがまだありません</p>
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    {assignees.map(name => {
+                        const colorIndex = assigneeMap[name];
+                        const color = (settings.assigneePalette || DEFAULT_SETTINGS.assigneePalette)[colorIndex % 20];
+                        return (
+                            <div key={name} className="flex items-center gap-4 p-3 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-gray-900 truncate">{name}</p>
+                                    <p className="text-[10px] text-gray-500">パレット番号: {colorIndex + 1}</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-1 border rounded-lg px-2 py-1 bg-gray-50">
+                                        <span className="text-xs text-gray-400 font-mono">No.</span>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="20"
+                                            value={colorIndex + 1}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                if (!isNaN(val)) {
+                                                    const newIndex = Math.max(0, Math.min(19, val - 1));
+                                                    onChange({ ...assigneeMap, [name]: newIndex });
+                                                }
+                                            }}
+                                            className="w-12 bg-transparent border-0 text-right text-sm font-bold focus:ring-0 outline-none p-0"
+                                        />
+                                    </div>
+                                    <div
+                                        className="w-10 h-10 rounded-lg border shadow-inner flex items-center justify-center relative overflow-hidden"
+                                        style={{ backgroundColor: color.bg, borderColor: color.border }}
+                                    >
+                                        <div className="absolute top-0 left-0 w-1.5 h-full" style={{ backgroundColor: color.bar }}></div>
+                                        <span className="text-[10px] font-bold" style={{ color: color.bar }}>色</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export const PaletteSettingsTab: React.FC<{
     palette: ColorSet[];

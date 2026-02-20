@@ -117,7 +117,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     Day: 38,
     Week: 120,
     Month: 200
-  }
+  },
+  assigneeColorMap: {}
 };
 
 // Replaced simple array export with logic that uses settings (handled in component)
