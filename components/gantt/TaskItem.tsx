@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Task, AppSettings, ColorSet, DragState } from '../../types';
 import { parseDate, diffDays } from '../../utils';
+import { Pencil } from 'lucide-react';
 
 export interface TaskItemProps {
     task: Task;
@@ -131,10 +132,11 @@ export const TaskItem = React.memo(({
                         <div className="relative flex items-center justify-center">
                             <div style={{ color: assigneeColor.bar }} className="text-lg leading-none">▼</div>
                             <div
-                                className="absolute left-full ml-1 text-xs font-semibold whitespace-nowrap px-1 rounded bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100"
+                                className="absolute left-full ml-1 text-xs font-semibold whitespace-nowrap px-1 rounded bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100 flex items-center gap-1"
                                 style={{ color: assigneeColor.bar, top: '50%', transform: 'translateY(-50%)' }}
                             >
-                                {task.name} ({displayStart.getMonth() + 1}/{displayStart.getDate()})
+                                <span>{task.name} ({displayStart.getMonth() + 1}/{displayStart.getDate()})</span>
+                                {task.note && <Pencil size={12} className="text-gray-400" />}
                             </div>
                         </div>
                     </div>
@@ -218,6 +220,7 @@ export const TaskItem = React.memo(({
                     >
                         <span>{displayProgress}%</span>
                         <span>{task.name}</span>
+                        {task.note && <Pencil size={12} className="text-gray-400" />}
                     </div>
                 </div>
             </div>
