@@ -7,10 +7,8 @@ interface ToolbarProps {
   appName: string;
   tasks: Task[];
   totalWorkdays?: number;
-  isConnected: boolean;
   viewMode: ViewMode;
   groupBy: 'default' | 'assignee';
-  onOpenCollab: () => void;
   onChangeGroupBy: (mode: 'default' | 'assignee') => void;
   onChangeViewMode: (mode: ViewMode) => void;
   onOpenSettings: () => void;
@@ -33,10 +31,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   appName,
   tasks,
   totalWorkdays,
-  isConnected,
   viewMode,
   groupBy,
-  onOpenCollab,
   onChangeGroupBy,
   onChangeViewMode,
   onOpenSettings,
@@ -68,9 +64,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       <div className="flex flex-wrap items-center gap-2 justify-end flex-1">
         <Button variant="secondary" size="sm" onClick={onOpenSettings} icon={<Settings size={16} />} title="設定" />
 
-        <div className="flex bg-gray-100 p-1 rounded-lg shrink-0">
-          <Button variant={isConnected ? 'primary' : 'secondary'} size="sm" onClick={onOpenCollab} icon={<Radio size={16} className={isConnected ? "animate-pulse" : ""} />} title="同時編集 (P2P)">{isConnected ? `接続中` : '共有'}</Button>
-        </div>
+
 
         <div className="flex bg-gray-100 p-1 rounded-lg shrink-0">
           <button onClick={() => onChangeGroupBy('default')} className={`p-1.5 rounded-md transition-all ${groupBy === 'default' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} title="リスト順"><List size={16} /></button>

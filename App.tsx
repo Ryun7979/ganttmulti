@@ -4,13 +4,12 @@ import { TaskForm } from './components/TaskForm';
 import { Button } from './components/Button';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { SnapshotDialog } from './components/SnapshotDialog';
-import { CollaborationDialog } from './components/CollaborationDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Toolbar } from './components/Toolbar';
 import { Task, ViewMode, Snapshot, AppSettings } from './types';
 import { getTimelineRange, generateId, formatDate, addDays, DEFAULT_SETTINGS, calculateWorkdays, calculateEndDate, parseDate, getPaletteColor } from './utils';
 
-import { useCollaboration } from './hooks/useCollaboration';
+
 import { useGanttExport } from './hooks/useGanttExport';
 import { useAppPersistence } from './hooks/useAppPersistence';
 import { useSidebarResize } from './hooks/useSidebarResize';
@@ -87,17 +86,13 @@ const App: React.FC = () => {
 
   useKeyboardShortcuts({ undo, redo });
 
-  // --- 3. Collaboration Hook ---
-  const {
-    myPeerId, connectToPeer, isConnected, connectionCount, regenerateId
-  } = useCollaboration(tasks, setTasks);
+
 
   // --- 4. UI State ---
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('Day');
   const [isSnapshotDialogOpen, setIsSnapshotDialogOpen] = useState(false);
-  const [isCollabDialogOpen, setIsCollabDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // --- 5. File Export/Import Hook ---
@@ -387,11 +382,9 @@ const App: React.FC = () => {
         appName={settings.appName || 'GanttMalti'}
         tasks={tasks}
         totalWorkdays={totalWorkdays}
-        isConnected={isConnected}
         viewMode={viewMode}
         groupBy={groupBy}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenCollab={() => setIsCollabDialogOpen(true)}
         onChangeGroupBy={setGroupBy}
         onChangeViewMode={setViewMode}
         onOpenSnapshot={() => setIsSnapshotDialogOpen(true)}
@@ -553,12 +546,11 @@ const App: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
         onSave={handleSaveSettings}
-        onRegeneratePeerId={regenerateId}
         onExportJSON={handleExportJSON}
         onImportClick={handleFileSystemImport}
         onDeleteAll={() => setConfirmDialog({ isOpen: true, type: 'all' })}
       />
-      <CollaborationDialog isOpen={isCollabDialogOpen} onClose={() => setIsCollabDialogOpen(false)} myPeerId={myPeerId} isConnected={isConnected} connectionCount={connectionCount} onConnect={connectToPeer} />
+
       <ConfirmDialog isOpen={confirmDialog.isOpen} title={dialogContent.title} message={dialogContent.message} confirmLabel={dialogContent.confirmLabel} confirmVariant={dialogContent.confirmVariant} showCancel={dialogContent.showCancel} onConfirm={executeConfirmAction} onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} />
     </div>
   );

@@ -517,31 +517,7 @@ export const CalendarSettingsTab: React.FC<{
         </div>
     );
 
-export const NetworkSettingsTab: React.FC<{
-    onRegenerate: () => void;
-    regenerationSuccess: boolean;
-}> = ({ onRegenerate, regenerationSuccess }) => (
-    <div className="space-y-4">
-        <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg">
-            <h3 className="text-sm font-bold text-blue-800 mb-2">P2P IDの設定</h3>
-            <p className="text-xs text-blue-700 mb-4">
-                現在のIDを破棄し、新しいIDを生成します。<br />
-                現在接続中のピアとは切断されます。
-            </p>
-            <div className="flex items-center gap-3">
-                <Button variant="secondary" onClick={onRegenerate} icon={<RefreshCw size={16} />}>
-                    IDを再生成する
-                </Button>
-                {regenerationSuccess && (
-                    <span className="text-sm text-green-600 font-bold flex items-center gap-1 animate-pulse">
-                        <CheckCircle2 size={16} />
-                        新しいIDを生成しました
-                    </span>
-                )}
-            </div>
-        </div>
-    </div>
-);
+
 
 export const ManualTab: React.FC = () => (
     <div className="space-y-6 text-gray-700">
@@ -590,17 +566,7 @@ export const ManualTab: React.FC = () => (
                 </ul>
             </section>
 
-            <section className="mb-6">
-                <h4 className="font-bold text-gray-900 mb-2">5. 同時編集 (P2P)</h4>
-                <div className="bg-blue-50 p-3 rounded text-sm text-blue-800">
-                    <p className="mb-1 font-semibold">サーバー不要のリアルタイム編集</p>
-                    <ol className="list-decimal pl-5 space-y-1">
-                        <li>「共有」ボタンをクリック</li>
-                        <li>自分のIDを相手に伝える or 相手のIDを入力して接続</li>
-                        <li>接続が確立すると、操作が即座に同期されます</li>
-                    </ol>
-                </div>
-            </section>
+
         </div>
     </div>
 );

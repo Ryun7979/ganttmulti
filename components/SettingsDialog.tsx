@@ -3,14 +3,14 @@ import { AppSettings } from '../types';
 import { Modal } from './Modal';
 import { Settings } from 'lucide-react';
 import { tintColor, shadeColor, parseDate, isWeekend, DEFAULT_SETTINGS } from '../utils';
-import { GeneralSettingsTab, AssigneeSettingsTab, PaletteSettingsTab, CalendarSettingsTab, NetworkSettingsTab, ManualTab, FileSettingsTab } from './SettingsDialogTabs';
+import { GeneralSettingsTab, AssigneeSettingsTab, PaletteSettingsTab, CalendarSettingsTab, ManualTab, FileSettingsTab } from './SettingsDialogTabs';
 
 interface SettingsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   settings: AppSettings;
   onSave: (newSettings: AppSettings) => void;
-  onRegeneratePeerId: () => void;
+
   onExportJSON: () => void;
   onImportClick: () => void;
   onDeleteAll: () => void;
@@ -21,18 +21,17 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   onClose,
   settings,
   onSave,
-  onRegeneratePeerId,
   onExportJSON,
   onImportClick,
   onDeleteAll
 }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'assignee' | 'palette' | 'calendar' | 'network' | 'manual' | 'file'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'assignee' | 'palette' | 'calendar' | 'manual' | 'file'>('general');
   const [localSettings, setLocalSettings] = useState<AppSettings>(() => structuredClone(settings));
   const [newHoliday, setNewHoliday] = useState('');
   const [holidayError, setHolidayError] = useState<string | null>(null);
   const [newEvent, setNewEvent] = useState('');
   const [eventError, setEventError] = useState<string | null>(null);
-  const [regenerationSuccess, setRegenerationSuccess] = useState(false);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -91,11 +90,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     }
   };
 
-  const handleRegenerate = () => {
-    onRegeneratePeerId();
-    setRegenerationSuccess(true);
-    setTimeout(() => setRegenerationSuccess(false), 3000);
-  };
+
 
   const tabs = [
     { id: 'general', label: '一般' },
@@ -103,7 +98,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     { id: 'palette', label: 'カラーパレット' },
     { id: 'calendar', label: 'カレンダー設定' },
     { id: 'file', label: 'ファイル設定' },
-    { id: 'network', label: 'ネットワーク' },
     { id: 'manual', label: 'マニュアル' },
   ];
 
@@ -149,7 +143,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               onResetEventColors={() => setLocalSettings({ ...localSettings, eventColors: { ...DEFAULT_SETTINGS.eventColors } })}
             />
           )}
-          {activeTab === 'network' && <NetworkSettingsTab onRegenerate={handleRegenerate} regenerationSuccess={regenerationSuccess} />}
+
           {activeTab === 'manual' && <ManualTab />}
           {activeTab === 'file' && (
             <FileSettingsTab
